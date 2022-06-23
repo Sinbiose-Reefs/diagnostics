@@ -1,0 +1,29 @@
+---
+title: "Diagnostics of reef fisheries in Brazil"
+author: "Reef Synthesis Working Group"
+date: '2022-06-23'
+output: github_document
+---
+
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## TRENDS IN FISHERIES OVER TIME
+
+```{r, echo=FALSE, message=F, warning =F}
+
+source ("R/script.R")
+
+catch_year
+
+
+```
+

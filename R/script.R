@@ -114,7 +114,7 @@ catch_year <- fisheries_wtrait [,-78]%>%  # 78 is the column with a second name 
 
 require(ggplot2)
 require(ggrepel)
-ggplot (catch_year, aes (x=Year, 
+catch_year <- ggplot (catch_year, aes (x=Year, 
                          y=sum_catch,
                          colour = Sector)) + 
   facet_wrap(~Region,scales = "free")+
@@ -583,16 +583,16 @@ grid.arrange(ordination_nut,
 # ======================
 
 # 
-source (here ("R", "function_poncho.R"))
-
-pdf("year.pdf")
-poncho (log(year_composition+1),
-        gradient = seq(1,nrow(year_composition)),
-        col = as.numeric(as.factor(fisheries_wtrait$Diet_2012[match (colnames(year_composition),
-                                                fisheries_wtrait$Genus)])),lty = 0)
-
-dev.off()
-
+#source (here ("R", "function_poncho.R"))
+#
+#pdf("year.pdf")
+#poncho (log(year_composition+1),
+#        gradient = seq(1,nrow(year_composition)),
+#        col = as.numeric(as.factor(fisheries_wtrait$Diet_2012[match (colnames(year_composition),
+#                                                fisheries_wtrait$Genus)])),lty = 0)
+#
+#dev.off()
+#
 
 
 # ===========================
