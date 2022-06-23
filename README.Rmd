@@ -18,7 +18,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## TRENDS IN FISHERIES OVER TIME
 
-```{r, echo=FALSE, message=F, warning =F}
+```{r, echo=FALSE, message=F, warning =F, fig.keep=3}
 
 source ("R/script.R")
 
