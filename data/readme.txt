@@ -1,0 +1,1 @@
+https://raw.githubusercontent.com/mamacneil/NutrientFishbase/master/data/all_traits_for_predictions.csv
