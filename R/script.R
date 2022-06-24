@@ -294,7 +294,7 @@ comp_change <- bind_rows(pcoa_fish_year %>%
 # arrange plots
 require(gridExtra)
 
-grid.arrange(ordination1,
+compostion1<-grid.arrange(ordination1,
              comp_change,
              ncol=5,nrow=6,
              layout_matrix = rbind (c (1,1,1,1,1),
@@ -370,7 +370,7 @@ levels(fish_year_df$variable)[which(levels(fish_year_df$variable) == "size.size"
 levels(fish_year_df$variable)[which(levels(fish_year_df$variable) == "size.depth")] <- "Depth" 
 
 # 
-ggplot (fish_year_df, aes (x=year, y=value,group=variable,colour=variable)) + 
+plot_size_depth<-ggplot (fish_year_df, aes (x=year, y=value,group=variable,colour=variable)) + 
   
   geom_point() + 
   
@@ -569,7 +569,7 @@ ordination_nut
 
 # arrange
 
-grid.arrange(ordination_nut,
+composition2<-grid.arrange(ordination_nut,
              plot_nut,
              ncol=5,nrow=7,
              layout_matrix = rbind (c (1,1,1,1,1),

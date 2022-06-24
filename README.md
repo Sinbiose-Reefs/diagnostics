@@ -9,4 +9,4 @@ Reef Synthesis Working Group
 
 ## TRENDS IN FISHERIES OVER TIME
 
-![](README_files/figure-gfm/unnamed-chunk-1-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-1-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-1-3.png)<!-- -->
+<img src="README_files/figure-gfm/unnamed-chunk-1-3-1.png" width="100%" height="100%" style="display: block; margin: auto;" />
