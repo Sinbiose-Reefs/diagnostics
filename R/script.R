@@ -105,7 +105,7 @@ catch_year <- fisheries_wtrait [,-78]%>%  # 78 is the column with a second name 
   
   group_by(Year,Sector,Region) %>% 
   
-  summarize(sum_catch=mean(CatchAmount_t),
+  summarize(sum_catch=sum(CatchAmount_t),
   ) 
 
 
@@ -114,7 +114,7 @@ catch_year <- fisheries_wtrait [,-78]%>%  # 78 is the column with a second name 
 
 require(ggplot2)
 require(ggrepel)
-catch_year <- ggplot (catch_year, aes (x=Year, 
+catch_year_plot <- ggplot (catch_year, aes (x=Year, 
                          y=sum_catch,
                          colour = Sector)) + 
   facet_wrap(~Region,scales = "free")+
@@ -122,7 +122,7 @@ catch_year <- ggplot (catch_year, aes (x=Year,
   scale_fill_viridis_d(option ="viridis", begin = 0.3,end=0.8) + 
   theme_classic() + 
   scale_colour_viridis_d(option ="viridis", begin = 0.3,end=0.8) + 
-  theme (legend.position = c(0.3,0.88),
+  theme (legend.position = c(0.7,0.88),
          axis.title = element_text(size=15)) + 
   ylab ("Sum of the Catch Amount (T)")
 
