@@ -21,8 +21,7 @@ fisheries$Sector [which(fisheries$Sector == "industrial (LS, C)")] <- "Industria
 # load data of Pinheiro et al. 2018 (BR reef fish)
 
 reef_fish <- read.csv (here ("data","brazilian-reef-fish-table-04-mar-18-website.xlsx - Database.csv"))
-
-
+reef_fish<-reef_fish[which(reef_fish$Relation == "RES"),] # REef fish  (RESident fish)
 
 
 
@@ -321,7 +320,7 @@ depth_genus <- tapply (as.numeric(gsub (",",".",traits$Depth_mean)),
 
 # going deeper in depth and food chain?
 
-nsp_choose <- 30 #  n species to choose (among the ranked spp)
+nsp_choose <- 20 #  n species to choose (among the ranked spp)
 
 
 # separate data per year (it will be used several times)
@@ -409,38 +408,45 @@ plot_size_depth<-ggplot (fish_year_df, aes (x=year, y=value,group=variable,colou
 # Are fisheries getting nutritionally poorer over time?
 # zinc
 
-zinc_genus <- tapply (traits$Zinc_mu,
-                       list (traits$Genus),
+zinc_genus <- tapply (fisheries_wtrait$Zinc_mu,
+                       list (fisheries_wtrait$Genus,
+                             fisheries_wtrait$Region),
                        mean,na.rm=T)
 
 # iron
-iron_genus <- tapply (traits$Iron_mu,
-                      list (traits$Genus),
+iron_genus <- tapply (fisheries_wtrait$Iron_mu,
+                      list (fisheries_wtrait$Genus,
+                            fisheries_wtrait$Region),
                       mean,na.rm=T)
 
 # omega 3
-omega_genus <- tapply (traits$Omega_3_mu,
-                      list (traits$Genus),
+omega_genus <- tapply (fisheries_wtrait$Omega_3_mu,
+                      list (fisheries_wtrait$Genus,
+                            fisheries_wtrait$Region),
                       mean,na.rm=T)
 
 # protein
-protein_genus <- tapply (traits$Protein_mu,
-                      list (traits$Genus),
+protein_genus <- tapply (fisheries_wtrait$Protein_mu,
+                      list (fisheries_wtrait$Genus,
+                            fisheries_wtrait$Region),
                       mean,na.rm=T)
 
 # calcium
-calcium_genus <- tapply (traits$Calcium_mu,
-                         list (traits$Genus),
+calcium_genus <- tapply (fisheries_wtrait$Calcium_mu,
+                         list (fisheries_wtrait$Genus,
+                               fisheries_wtrait$Region),
                          mean,na.rm=T)
 
 # selenium
-selenium_genus <- tapply (traits$Selenium_mu,
-                         list (traits$Genus),
+selenium_genus <- tapply (fisheries_wtrait$Selenium_mu,
+                         list (fisheries_wtrait$Genus,
+                               fisheries_wtrait$Region),
                          mean,na.rm=T)
 
 # vitA
-vitA_genus <- tapply (traits$Vitamin_A_mu,
-                          list (traits$Genus),
+vitA_genus <- tapply (fisheries_wtrait$Vitamin_A_mu,
+                          list (fisheries_wtrait$Genus,
+                                fisheries_wtrait$Region),
                           mean,na.rm=T)
 
 # list of nutrient data
@@ -448,37 +454,54 @@ nutrient_data <- list (zinc_genus,iron_genus,omega_genus,protein_genus,
                        calcium_genus,selenium_genus , vitA_genus)
 # extract data
 fish_year_nutrition <- lapply (fish_year, function (i) 
-  unlist(lapply (nutrient_data, function (k)  {
+  do.call(rbind, lapply (nutrient_data, function (k)  { # bind nutrient data
   
   
   fish_year_genus <- tapply (i$CatchAmount_t,
-                             list (i$Genus),
+                             list (i$Genus,
+                                   i$Region),
                              sum)
-  # Mean size among the most frequent nsp_choose 
-  nut_collect_species <- names (fish_year_genus[order(fish_year_genus,decreasing=T)][1:nsp_choose])
-  nut_collect_species <- k[which(names (k) %in% nut_collect_species)]
-  mean_nut_collect_species<- mean(nut_collect_species,na.rm=T)
   
+  # Mean size among the most frequent nsp_choose 
+  # across regions
+  nut_reg <- do.call(cbind,   # melt nutrient data per region
+    
+    lapply (seq (1,ncol (fish_year_genus)), function (reg) {
+  
+        nut_collect_species <- names (fish_year_genus[,reg])[order(fish_year_genus[,reg],decreasing=T)][1:nsp_choose]
+        nut_collect_species <- k[which(names (k[,reg]) %in% nut_collect_species),reg]
+        mean_nut_collect_species<- mean(nut_collect_species,na.rm=T)
+        mean_nut_collect_species
+  }))
+  colnames(nut_reg) <- colnames(fish_year_genus)
   ; # return
-  mean_nut_collect_species
+  nut_reg
   
   
 })))
-
+# name rows
+fish_year_nutrition<- lapply (fish_year_nutrition, function (i) {
+  rownames (i)<- c("Zinc","Iron", "Omega-3", "Protein","Calcium","Selenium","Vitamin-A")
+  ;
+  i
+})
+# name year
+names (fish_year_nutrition) <- names(fish_year)
 # melt
-fish_year_nutrition <-data.frame( do.call(rbind, fish_year_nutrition))
-fish_year_nutrition$year <- rownames(fish_year_nutrition)
-colnames(fish_year_nutrition) <- c("Zinc","Iron", "Omega-3", "Protein","Calcium","Selenium","Vitamin-A","year")
-fish_year_nutrition<- melt(fish_year_nutrition,id.var="year")
-
+fish_year_nutrition <-( do.call(rbind.data.frame, fish_year_nutrition))
+fish_year_nutrition$year <- sapply (strsplit ( rownames(fish_year_nutrition), "\\."), "[",1)
+fish_year_nutrition$nutrient <- sapply (strsplit ( rownames(fish_year_nutrition), "\\."), "[",2)
+# melt to fit ggplot format
+fish_year_nutrition<- melt(fish_year_nutrition,id.var=c("year", "nutrient"))
 
 # plot 
 
 plot_nut <- ggplot (fish_year_nutrition, aes (x=year, 
                                   y=value,
-                                  group=variable)) + 
+                                  group=variable,
+                                  colour=variable)) + 
   geom_point()+
-  facet_wrap(~variable,scales = "free_y",ncol=7)+
+  facet_wrap(~nutrient,scales = "free_y",ncol=7)+
   geom_smooth() +
   scale_x_discrete(
     
@@ -491,14 +514,19 @@ plot_nut <- ggplot (fish_year_nutrition, aes (x=year,
   theme_classic() + 
   theme(axis.text = element_text(size=5),
         axis.title = element_text(size=13),
-        strip.text = element_text(face="bold"))
+        strip.text = element_text(face="bold")) + 
+  scale_colour_viridis_d()
 
 
 plot_nut
 
 # ordination to show the nutrition content of fish genus
-
-genus_nutrient_composition <-do.call(cbind,nutrient_data)
+genus_nutrient_composition <- lapply (nutrient_data, function (i) 
+  
+          apply (i,1, mean,na.rm=T)
+          
+)
+genus_nutrient_composition <- do.call(cbind,genus_nutrient_composition)
 colnames(genus_nutrient_composition) <- c("Zinc","Iron", "Omega-3", "Protein","Calcium","Selenium","Vitamin-A")
 # removing missing data
 genus_nutrient_composition<-genus_nutrient_composition[which(rowSums(genus_nutrient_composition>0,na.rm=T)>0),]
@@ -534,14 +562,16 @@ correlation_nut$nutrient <- rownames(correlation_nut)
 # https://ggplot2.tidyverse.org/reference/geom_path.html
 ordination_nut<-ggplot(data=pcoa_nut,
                     aes(x=Axis.1,y=Axis.2)) + 
-  geom_point(aes(colour=as.numeric(sp)),shape=1,size=3) + # add the point markers
+  geom_point(colour="black",alpha=0.5,stroke=1.5,
+             shape=1,size=3) + # add the point markers
   #geom_path(aes(colour=as.numeric(sp)),alpha=0.5)+
   
-  geom_text(aes(label=ifelse(Axis.1>1.5 |
-                               Axis.1 < -1 |
-                               Axis.2 >1 |
-                               Axis.2 < -2,as.character(sp),'')),
-            size=2.5,vjust=1) +
+  geom_text_repel(aes(label=sp ),size=3,vjust=1,
+                  max.overlaps = 50)+#ifelse(Axis.1>1.5 |
+                            #   Axis.1 < -1 |
+                            #   Axis.2 >1 |
+                            #   Axis.2 < -2,as.character(sp),'')),
+            #size=2.5,vjust=1) +
   #geom_path(aess(group=year)) +# add the site labels
   #scale_colour_manual(values=c("A" = "red", "B" = "blue")) +
   coord_equal() +
@@ -555,8 +585,8 @@ ordination_nut<-ggplot(data=pcoa_nut,
 ordination_nut<-ordination_nut + 
   
                     geom_text_repel(data = correlation_nut,
-                                           aes (x=Axis.1*4,
-                                                y = Axis.2*4,
+                                           aes (x=Axis.1*2,
+                                                y = Axis.2*2,
                                                 label = (nutrient)),
                                            size=5,fontface = "italic",
                                            colour="#1363DF",
@@ -670,6 +700,12 @@ agg1<-aggregate(CatchAmount_t~Region+Genus+Year,sum,data=fisheries_wtrait)
 
 head(agg1)
 
+# poison smooth 
+poison_smooth <- function(...) {
+  geom_smooth(method = "gam", 
+              method.args = list(family = "negbin(1)"),...)
+  # geom_smooth(method = "glm", method.args = list(family = "poisson"), ...) # glm option
+}
 
 ggplot(agg1[which(agg1$Genus %in% 
                     c("Scarus", "Sparisoma",
@@ -680,7 +716,7 @@ ggplot(agg1[which(agg1$Genus %in%
        aes (x=Year, y=sqrt(CatchAmount_t),colour = Genus))+
   geom_point() + 
   facet_wrap(~Region,scales = "free")+
-  geom_smooth(method = "loess") + theme_classic() + 
+  poison_smooth(formula = y ~ s(x, bs = "cs",k=3)) + theme_classic() + 
   scale_colour_viridis_d(option = "viridis", begin=0.1,end=0.9)
   
 
