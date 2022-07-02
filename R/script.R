@@ -9,7 +9,9 @@ require(here)
 require(openxlsx)
 
 
+# create directory to host the results
 
+dir.create("output")
 
 # load fisheries data (Freire et al. 2021)
 
@@ -113,6 +115,8 @@ catch_year <- fisheries_wtrait [,-78]%>%  # 78 is the column with a second name 
 
 require(ggplot2)
 require(ggrepel)
+
+
 catch_year_plot <- ggplot (catch_year, aes (x=Year, 
                          y=sum_catch,
                          colour = Sector)) + 
@@ -126,6 +130,10 @@ catch_year_plot <- ggplot (catch_year, aes (x=Year,
   ylab ("Sum of the Catch Amount (T)")
 
 
+
+pdf (here ("output", "catch_year_plot.pdf"),height=6,width=6)
+catch_year_plot
+dev.off()
 
 # ========================
 # a pesca mudou ao longo do tempo?
@@ -293,6 +301,8 @@ comp_change <- bind_rows(pcoa_fish_year %>%
 # arrange plots
 require(gridExtra)
 
+pdf (here ("output", "fisheries_composition.pdf"),height=6,width=7)
+
 compostion1<-grid.arrange(ordination1,
              comp_change,
              ncol=5,nrow=6,
@@ -302,6 +312,9 @@ compostion1<-grid.arrange(ordination1,
                                     c (1,1,1,1,1),
                                     c (2,2,2,2,2),
                                     c (2,2,2,2,2)))
+
+
+dev.off()
 
 # ============================
 
@@ -403,6 +416,9 @@ plot_size_depth<-ggplot (fish_year_df, aes (x=year, y=value,group=variable,colou
   
 
 
+pdf (here ("output", "size_depth_catch_fish.pdf"),height=5,width=5)
+plot_size_depth
+dev.off()
 
 
 # Are fisheries getting nutritionally poorer over time?
@@ -500,7 +516,7 @@ plot_nut <- ggplot (fish_year_nutrition, aes (x=year,
                                   y=value,
                                   group=variable,
                                   colour=variable)) + 
-  geom_point()+
+  geom_point(alpha=0.2)+
   facet_wrap(~nutrient,scales = "free_y",ncol=7)+
   geom_smooth() +
   scale_x_discrete(
@@ -599,6 +615,9 @@ ordination_nut
 
 # arrange
 
+
+pdf (here ("output", "nutrients.pdf"),height=5,width=8)
+
 composition2<-grid.arrange(ordination_nut,
              plot_nut,
              ncol=5,nrow=7,
@@ -609,6 +628,9 @@ composition2<-grid.arrange(ordination_nut,
                                     c (1,1,1,1,1),
                                     c (2,2,2,2,2),
                                     c (2,2,2,2,2)))
+
+
+dev.off()
 
 # ======================
 
@@ -639,7 +661,7 @@ TL_fisheries<-melt (TL_fisheries)
 colnames(TL_fisheries) <- c("Year", "TrGroup", "Region", "value")
 
 ## pot trnds over time
-ggplot (TL_fisheries, aes (x=Year, y=value,
+trophic_level_trends <- ggplot (TL_fisheries, aes (x=Year, y=value,
                      colour = TrGroup)) + 
   facet_wrap(~Region,scales = "free")+
   geom_line(size=1) + 
@@ -648,6 +670,11 @@ ggplot (TL_fisheries, aes (x=Year, y=value,
   theme_classic() + 
   scale_colour_viridis_d(option = "viridis")
 
+pdf (here ("output", "TL_trends.pdf"),height=5,width=6)
+
+trophic_level_trends
+
+dev.off()
 
 ## ======================================
 # herbivorous over time
@@ -665,7 +692,7 @@ selected_fish_trend<-melt (selected_fish_trend)
 colnames(selected_fish_trend) <- c("Year",  "Region", "Genus","value")
 
 # plot
-ggplot (selected_fish_trend[which(selected_fish_trend$Genus %in% 
+sel_spp_trends <- ggplot (selected_fish_trend[which(selected_fish_trend$Genus %in% 
                       c("Scarus", "Sparisoma",
                         "Acanthurus", 
                         "Lutjanus",
@@ -683,6 +710,8 @@ ggplot (selected_fish_trend[which(selected_fish_trend$Genus %in%
   theme_classic()  +
   scale_colour_viridis_d(option ="viridis", begin=0.1,end=0.9)
   
+
+
 
 
 
@@ -706,7 +735,8 @@ poison_smooth <- function(...) {
   # geom_smooth(method = "glm", method.args = list(family = "poisson"), ...) # glm option
 }
 
-ggplot(agg1[which(agg1$Genus %in% 
+
+trend_sel_sp_region <- ggplot(agg1[which(agg1$Genus %in% 
                     c("Scarus", "Sparisoma",
                      "Acanthurus", "Lutjanus",
                      "Mycteroperca",
@@ -721,7 +751,11 @@ ggplot(agg1[which(agg1$Genus %in%
 
 
 
+pdf (here ("output", "sel_spp_trends.pdf"),height=5,width=6)
 
+trend_sel_sp_region
+
+dev.off()
 
 
 
