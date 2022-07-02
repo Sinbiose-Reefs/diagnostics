@@ -8,5 +8,3 @@ Reef Synthesis Working Group
 <!-- badges: end -->
 
 ## TRENDS IN FISHERIES OVER TIME
-
-<img src="README_files/figure-gfm/unnamed-chunk-1-3-1.png" width="100%" height="100%" style="display: block; margin: auto;" />
