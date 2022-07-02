@@ -629,17 +629,17 @@ composition2<-grid.arrange(ordination_nut,
 # tRAIT COMSPOTION
 
 
-caceta <- tapply (fisheries_wtrait$CatchAmount_t,
+TL_fisheries <- tapply (fisheries_wtrait$CatchAmount_t,
         list(fisheries_wtrait$Year,
              fisheries_wtrait$Diet_2012,
              fisheries_wtrait$Region),
         sum, default = 0) 
 
-caceta<-melt (caceta)
-colnames(caceta) <- c("Year", "TrGroup", "Region", "value")
+TL_fisheries<-melt (TL_fisheries)
+colnames(TL_fisheries) <- c("Year", "TrGroup", "Region", "value")
 
 ## pot trnds over time
-ggplot (caceta, aes (x=Year, y=value,
+ggplot (TL_fisheries, aes (x=Year, y=value,
                      colour = TrGroup)) + 
   facet_wrap(~Region,scales = "free")+
   geom_line(size=1) + 
@@ -654,20 +654,19 @@ ggplot (caceta, aes (x=Year, y=value,
 
 
 
-caceta <- tapply (fisheries_wtrait$CatchAmount_t,
+selected_fish_trend <- tapply (fisheries_wtrait$CatchAmount_t,
                   list(fisheries_wtrait$Year,
                        #fisheries_wtrait$Diet_2012,
                        fisheries_wtrait$Region,
                        fisheries_wtrait$Genus),
                   sum) 
 
-caceta<-melt (caceta)
-colnames(caceta) <- c("Year",  "Region", "Genus","value")
+selected_fish_trend<-melt (selected_fish_trend)
+colnames(selected_fish_trend) <- c("Year",  "Region", "Genus","value")
 
 # plot
-ggplot (caceta[which(#caceta$TrGroup %in% c("HD", "HM") &
-  #caceta$Region %in% c("Sul","SE","NE") & 
-    caceta$Genus %in% c("Scarus", "Sparisoma",
+ggplot (selected_fish_trend[which(selected_fish_trend$Genus %in% 
+                      c("Scarus", "Sparisoma",
                         "Acanthurus", 
                         "Lutjanus",
                         "Mycteroperca",
@@ -690,8 +689,8 @@ ggplot (caceta[which(#caceta$TrGroup %in% c("HD", "HM") &
 ## --------------------
 # trends
 # species per region and year
-# + atual
-# recorte regionaliado
+# + current
+# regional scale
 
 
 
