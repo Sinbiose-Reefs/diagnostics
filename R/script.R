@@ -246,7 +246,6 @@ ordination1<-ordination1 + geom_text_repel(data = correlation[order(correlation[
 # change in composition per region
 # a pesca mudou ao longo do tempo?
 
-require(reshape)
 year_composition <- lapply (unique(fisheries_wtrait$Region), function (i)
   
   cast (fisheries_wtrait[which(fisheries_wtrait$Region == i),], 
@@ -333,7 +332,7 @@ depth_genus <- tapply (as.numeric(gsub (",",".",traits$Depth_mean)),
 
 # going deeper in depth and food chain?
 
-nsp_choose <- 20 #  n species to choose (among the ranked spp)
+nsp_choose <- 15 #  n species to choose (among the ranked spp)
 
 
 # separate data per year (it will be used several times)
@@ -545,14 +544,29 @@ genus_nutrient_composition <- lapply (nutrient_data, function (i)
 genus_nutrient_composition <- do.call(cbind,genus_nutrient_composition)
 colnames(genus_nutrient_composition) <- c("Zinc","Iron", "Omega-3", "Protein","Calcium","Selenium","Vitamin-A")
 # removing missing data
-genus_nutrient_composition<-genus_nutrient_composition[which(rowSums(genus_nutrient_composition>0,na.rm=T)>0),]
+genus_nutrient_composition<-genus_nutrient_composition[which(rowSums(genus_nutrient_composition>0,
+                                                                     na.rm=T)>0),]
 genus_data <- rownames(genus_nutrient_composition)
 # standardize values
 genus_nutrient_composition<-apply (genus_nutrient_composition, 2,scale)
 rownames(genus_nutrient_composition) <- genus_data
 
+
+# weigth nutrient composition by catch amount
+catch_amount_genus <- tapply (fisheries_wtrait$CatchAmount_t,
+                          list (fisheries_wtrait$Genus),
+                      sum,na.rm=T)
+# removing missing data
+catch_amount_genus<-catch_amount_genus[which(rownames (catch_amount_genus) %in% genus_data)]
+catch_amount_genus[order(catch_amount_genus,decreasing=T)]
+
+# standardize values
+catch_amount_genus<-decostand ((catch_amount_genus),method= "standardize")
+catch_amount_genus[order(catch_amount_genus)]
+
 # distance matrix
-dist_nut <- vegdist (genus_nutrient_composition, "euclidean")
+dist_nut <- vegdist (genus_nutrient_composition*catch_amount_genus[,1],  # weighted matrix
+                     "euclidean")
 
 # ordination
 pcoa_nut <- pcoa(dist_nut)
@@ -601,8 +615,8 @@ ordination_nut<-ggplot(data=pcoa_nut,
 ordination_nut<-ordination_nut + 
   
                     geom_text_repel(data = correlation_nut,
-                                           aes (x=Axis.1*2,
-                                                y = Axis.2*2,
+                                           aes (x=Axis.1*4,
+                                                y = Axis.2*4,
                                                 label = (nutrient)),
                                            size=5,fontface = "italic",
                                            colour="#1363DF",
