@@ -1,10 +1,12 @@
 
-# diagnostics of reef fisheries in Brazil
+# -------------------------------------------------------------
 
+# Diagnostics of reef fisheries in Brazil
+
+# Linda Eggertsen et al.
 
 
 # load packages
-
 require(here)
 require(openxlsx)
 
@@ -17,22 +19,42 @@ dir.create("output")
 
 fisheries <- read.xlsx (here ("data", "FINAL_RECONSTRUCTED_Brazil_1950_2015_CommercialEtapaII_04072021_IP_Freire.xlsx"),
                         sheet = 2)
-
+# adjust name
 fisheries$Sector [which(fisheries$Sector == "industrial (LS, C)")] <- "Industrial (LS, C)"
 
-# load data of Pinheiro et al. 2018 (BR reef fish)
 
+
+
+# load data of Pinheiro et al. 2018 (BR reef fish)
 reef_fish <- read.csv (here ("data","brazilian-reef-fish-table-04-mar-18-website.xlsx - Database.csv"))
 reef_fish<-reef_fish[which(reef_fish$Relation == "RES"),] # REef fish  (RESident fish)
 
 
 
-# trait data (GASPAR database)
 
-traits <- read.xlsx (here ("data", "GASPAR_Data-1.xlsx"),
-                     sheet = 3)
+# trait data (GASPAR database)
+#traits <- read.xlsx (here ("data", "GASPAR_Data-1.xlsx"),
+#                     sheet = 3)
+
+# trait data (QUimbayo database)
+
+traits <- read.csv (here ("data", 
+                          "Atributos_especies_Atlantico_&_Pacifico_Oriental_2020_04_28.csv"),
+                    sep = ";")
+
+firstup <- function(x) {
+  substr(x, 1, 1) <- toupper(substr(x, 1, 1))
+  x
+}
+
+
+traits$Genus <- firstup(traits$Genus)  
+
 
 # ajusts  
+traits$Body_size <- as.numeric(gsub (",",".",traits$Body_size))
+traits$Trophic_level <- as.numeric(gsub (",",".",traits$Trophic_level))
+traits$Depth_range <- as.numeric(gsub (",",".",traits$Depth_range))
 traits$Depth_max<-as.numeric(gsub (",",".",traits$Depth_max))
 traits$Depth_min<-as.numeric(gsub (",",".",traits$Depth_min))
 # average depth
@@ -67,7 +89,7 @@ nutrients$Genus <- sapply(strsplit (nutrients$species, "_"), "[",1)
 traits <- cbind (traits, 
                  nutrients[match (traits$Genus,
                                   
-                                  nutrients$Genus),])
+                                   (nutrients$Genus)),])
 
 
 
@@ -77,10 +99,7 @@ traits <- cbind (traits,
 
 table(unique(fisheries$Genus_match) %in% reef_fish$Genus )
 
-
-
-fisheries_wtrait<-fisheries[fisheries$Genus_match %in% reef_fish$Genus,]
-
+fisheries_wtrait<-fisheries[which(fisheries$Genus_match %in% reef_fish$Genus),]
 
 
 
@@ -91,18 +110,20 @@ fisheries_wtrait <- cbind (fisheries_wtrait,
                            
                            )
 
+# here we have the sharks
+unique(fisheries_wtrait[is.na(fisheries_wtrait$Class),"Genus_match"])
 
 
 
+# equal columns (remove one)
+table(fisheries_wtrait[,25] == fisheries_wtrait[,117])
+fisheries_wtrait<- fisheries_wtrait[,-117]
 
-
-
-table(fisheries_wtrait[,27] == fisheries_wtrait[,78])
 
 # ---------------------------
 # plotting
 # catch year
-catch_year <- fisheries_wtrait [,-78]%>%  # 78 is the column with a second name 'genus'
+catch_year <- fisheries_wtrait %>%
   
   group_by(Year,Sector,Region) %>% 
   
@@ -121,7 +142,7 @@ catch_year_plot <- ggplot (catch_year, aes (x=Year,
                          y=sum_catch,
                          colour = Sector)) + 
   facet_wrap(~Region,scales = "free")+
-  geom_line(size=1) + 
+  geom_line(size=1.5) + 
   scale_fill_viridis_d(option ="viridis", begin = 0.3,end=0.8) + 
   theme_classic() + 
   scale_colour_viridis_d(option ="viridis", begin = 0.3,end=0.8) + 
@@ -135,25 +156,23 @@ pdf (here ("output", "catch_year_plot.pdf"),height=6,width=6)
 catch_year_plot
 dev.off()
 
+
 # ========================
-# a pesca mudou ao longo do tempo?
-
-
+# how fisheries changed over time in terms of spp composition?
 # filter reef fish
-
-fisheries_wtrait<-fisheries_wtrait[which(fisheries_wtrait$Genus %in% 
-                                           reef_fish$Genus),]
-
 
 # reshape
 require(reshape)
 
 year_composition <- cast (fisheries_wtrait, 
                           
-                          formula = Year ~ Genus, 
+                          formula = Year ~ Genus_match, 
       
                         value = "CatchAmount_t",
-                        fun.aggregate = sum
+                     
+                           fun.aggregate =  sum,
+                        
+                        drop = F
         )
 
 
@@ -246,14 +265,17 @@ ordination1<-ordination1 + geom_text_repel(data = correlation[order(correlation[
 # change in composition per region
 # a pesca mudou ao longo do tempo?
 
-year_composition <- lapply (unique(fisheries_wtrait$Region), function (i)
+year_composition_region <- lapply (unique(fisheries_wtrait$Region), function (i)
   
   cast (fisheries_wtrait[which(fisheries_wtrait$Region == i),], 
         
-        formula = Year ~ Genus, # Genus
+        formula = Year ~ Genus_match, # Genus
         
         value = "CatchAmount_t",
-        fun.aggregate = sum
+        
+        fun.aggregate = sum,
+        
+        drop= F
   )
 )
 
@@ -264,7 +286,7 @@ library(tidyverse)
 
 # vegan beta diversity
 require(vegan)
-dist_composition_pcoa <- lapply (year_composition, function (i){
+dist_composition_pcoa <- lapply (year_composition_region, function (i){
   
   
   dist_composition <- vegdist (decostand(i,'hell'),
@@ -315,19 +337,287 @@ compostion1<-grid.arrange(ordination1,
 
 dev.off()
 
+
+# ----------------------------------------------------------------
+# how do fisheries changed in terms of functional composition?
+
+# create the function to get the mode
+getmode <- function(v) {
+  uniqv <- unique(v)
+  uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+
+# trait composition
+
+average_traits <- fisheries_wtrait %>% 
+  
+                        
+                        group_by(Genus_match) %>% 
+  
+                          summarise (Body_size = mean (Body_size,na.rm=T),  
+                                     Trophic_level = mean (Trophic_level,na.rm=T), 
+                                     Depth_range = mean (Depth_range,na.rm=T), 
+                                     Diel_activity = getmode (Diel_activity), 
+                                     Size_group = getmode (Size_group), 
+                                     Level_water = getmode (Level_water))  %>%
+  
+                          
+                          select (Genus_match, Body_size, Trophic_level, Depth_range, 
+                                  Diel_activity, Size_group, Level_water)  
+                          
+# transform categorical into ranking traits
+# group size
+average_traits$Size_group [which(average_traits$Size_group == "sol")] <- 1
+average_traits$Size_group [which(average_traits$Size_group == "pair")] <- 2
+average_traits$Size_group [which(average_traits$Size_group == "smallg")] <- 3
+average_traits$Size_group [which(average_traits$Size_group == "medg")] <- 4
+average_traits$Size_group [which(average_traits$Size_group == "largeg")] <- 5
+average_traits$Size_group <- ordered (average_traits$Size_group) # ordered
+
+# level water
+average_traits$Level_water [which(average_traits$Level_water == "bottom")] <- 1
+average_traits$Level_water [which(average_traits$Level_water == "low")] <- 2
+average_traits$Level_water [which(average_traits$Level_water == "high")] <- 3
+average_traits$Level_water <- ordered (average_traits$Level_water) # ordered
+
+# daily activity
+average_traits$Diel_activity <- ifelse (average_traits$Diel_activity %in% c("night", "both"),
+                                        1,0)
+average_traits<- data.frame(average_traits)
+rownames (average_traits) <- average_traits$Genus_match
+average_traits<- average_traits[,-1]
+
+
+# functional composition  
+require(SYNCSA)
+
+# organize data
+organized_data <- organize.syncsa(
+  
+      decostand(year_composition,'hell'),
+                average_traits[,-which(colnames(average_traits) == "Diel_activity")])
+
+# functional composition
+funct_comp <- matrix.t(organized_data$community, 
+                       organized_data$traits, 
+                       scale = TRUE, 
+                       ranks = TRUE, 
+                       notification = TRUE)
+
+# composition
+# vegan:: beta diversity between year
+#  hellinger transformed dataset
+require(vegan)
+dist_funct_composition <- vegdist (funct_comp$matrix.T,
+                                  method = "euclidean",na.rm=T)
+
+
+
+# pcoa
+require(ape)
+pcoa_fish_year_func <- pcoa(dist_funct_composition)
+# variance explained by the first and second axes
+(Exp_axis1_func<-pcoa_fish_year_func$values$Eigenvalues[1]/sum(pcoa_fish_year_func$values$Eigenvalues)*100)
+(Exp_axis2_func<-pcoa_fish_year_func$values$Eigenvalues[2]/sum(pcoa_fish_year_func$values$Eigenvalues)*100)
+
+
+#pcoa_fish_year <- melt (pcoa_fish_year)
+pcoa_fish_year_func <- cbind (pcoa_fish_year_func$vectors,
+                         year = as.numeric(rownames(organized_data$community)))
+
+# dataframe with data
+pcoa_fish_year_func<-as.data.frame(pcoa_fish_year_func)
+
+# ordination (projection of beta diversity )
+# help here
+# https://ggplot2.tidyverse.org/reference/geom_path.html
+ordination1_func<-ggplot(data=pcoa_fish_year_func,
+                    aes(x=Axis.1,y=Axis.2)) + 
+  geom_point(aes(colour=as.numeric(year)),shape=1,size=3) + # add the point markers
+  geom_path(aes(colour=as.numeric(year)),alpha=0.5)+
+  
+  geom_text(aes(label=year),
+            size=2.5,vjust=-1) +
+  #geom_path(aess(group=year)) +# add the site labels
+  #scale_colour_manual(values=c("A" = "red", "B" = "blue")) +
+  coord_equal() +
+  theme_bw() +
+  theme(legend.position = "none")
+
+
+
+# correlation of genus to the axes
+correlation_func <-data.frame( cor (funct_comp$matrix.T,
+                               pcoa_fish_year_func[,1:2],
+                               method = "pearson"))
+correlation_func$trait <- rownames(correlation_func)
+
+# order
+
+correlation_func[order(correlation_func[,1],decreasing=T),]
+correlation_func[order(correlation_func[,1],decreasing=F),]
+correlation_func[order(correlation_func[,2],decreasing=T),]
+
+
+
+# project genus names
+ordination1_func<-ordination1_func + 
+  
+  geom_text_repel(data = correlation_func[order(correlation_func[,2],
+                                                decreasing=T),],
+                                           aes (x=Axis.1*0.02,
+                                                y = Axis.2*0.02,
+                                                label = (trait)),
+                                           size=3,fontface = "italic",
+                                           colour="#1363DF",
+                                           max.overlaps = 100) + 
+  xlab (paste ("Axis 1 (", round(Exp_axis1_func,2), "%)",sep="")) +
+  ylab (paste ("Axis 2 (", round(Exp_axis2_func,2), "%)",sep=""))
+
+
+## =============================================== 
+# change in composition per region
+# a pesca mudou ao longo do tempo?
+
+func_composition_region <- lapply (unique(fisheries_wtrait$Region), function (i){
+  
+  # trait composition
+        
+  average_traits <- fisheries_wtrait[which(fisheries_wtrait$Region == i),] %>% 
+          
+          
+          group_by(Genus_match) %>% 
+          
+          summarise (Body_size = mean (Body_size,na.rm=T),  
+                     Trophic_level = mean (Trophic_level,na.rm=T), 
+                     Depth_range = mean (Depth_range,na.rm=T), 
+                     Diel_activity = getmode (Diel_activity), 
+                     Size_group = getmode (Size_group), 
+                     Level_water = getmode (Level_water))  %>%
+          
+          
+          select (Genus_match, Body_size, Trophic_level, Depth_range, 
+                  Diel_activity, Size_group, Level_water)  
+        
+        # transform categorical into ranking traits
+        # group size
+        average_traits$Size_group [which(average_traits$Size_group == "sol")] <- 1
+        average_traits$Size_group [which(average_traits$Size_group == "pair")] <- 2
+        average_traits$Size_group [which(average_traits$Size_group == "smallg")] <- 3
+        average_traits$Size_group [which(average_traits$Size_group == "medg")] <- 4
+        average_traits$Size_group [which(average_traits$Size_group == "largeg")] <- 5
+        average_traits$Size_group <- ordered (average_traits$Size_group) # ordered
+        
+        # level water
+        average_traits$Level_water [which(average_traits$Level_water == "bottom")] <- 1
+        average_traits$Level_water [which(average_traits$Level_water == "low")] <- 2
+        average_traits$Level_water [which(average_traits$Level_water == "high")] <- 3
+        average_traits$Level_water <- ordered (average_traits$Level_water) # ordered
+        
+        # daily activity
+        average_traits$Diel_activity <- ifelse (average_traits$Diel_activity %in% c("night", "both"),
+                                                1,0)
+        average_traits<- data.frame(average_traits)
+        rownames (average_traits) <- average_traits$Genus_match
+        average_traits<- average_traits[,-1]
+        
+        # taxonomic composition per region (create here)
+        year_composition_region <- cast (fisheries_wtrait[which(fisheries_wtrait$Region == i),], 
+                
+                formula = Year ~ Genus_match, # Genus
+                
+                value = "CatchAmount_t",
+                fun.aggregate = sum
+          
+        )
+        
+        
+        # functional composition  
+        # organize data
+        organized_data <- organize.syncsa(
+          
+          decostand(year_composition_region,'hell'),
+          average_traits[,-which(colnames(average_traits) == "Diel_activity")])
+        
+        # functional composition
+        funct_comp <- matrix.t(organized_data$community, 
+                               organized_data$traits, 
+                               scale = TRUE, 
+                               ranks = TRUE, 
+                               notification = TRUE)
+        
+        # composition
+        # vegan:: beta diversity between year
+        #  hellinger transformed dataset
+        require(vegan)
+        dist_funct_composition <- vegdist (funct_comp$matrix.T,
+                                           method = "euclidean",na.rm=T)
+        
+        
+        
+        # pcoa
+        pcoa_fish_year_func <- pcoa(dist_funct_composition)
+        pcoa_fish_year_func
+        
+})
+
+
+# composition per region
+comp_change_func <- bind_rows(pcoa_fish_year_func %>% 
+                           bind_cols(region = "Brazil", Year = unique(fisheries_wtrait$Year)),
+                           func_composition_region[[1]]$vectors %>% 
+                           bind_cols(region = "Norte", Year = unique(fisheries_wtrait$Year)),
+                           func_composition_region[[2]]$vectors %>% 
+                           bind_cols(region = "NE", Year = unique(fisheries_wtrait$Year)),
+                           func_composition_region[[3]]$vectors %>% 
+                           bind_cols(region = "SE", Year = unique(fisheries_wtrait$Year)),
+                           func_composition_region[[4]]$vectors %>% 
+                           bind_cols(region = "Sul", Year = unique(fisheries_wtrait$Year))) %>% 
+  data.frame() %>% dplyr::rename(change = Axis.1) %>% 
+  ggplot(aes(x = Year, y = change)) +
+  geom_point() +
+  facet_wrap(~ region, ncol = 5) +
+  theme_classic() +
+  geom_smooth() +
+  labs(x = "", y = "Change in catch\n functional composition (Beta functional)")
+
+
+# arrange plots
+require(gridExtra)
+
+pdf (here ("output", "fisheries_functional_composition.pdf"),height=6,width=7)
+
+compostion1_func<-grid.arrange(ordination1_func,
+                          comp_change_func,
+                          ncol=5,nrow=6,
+                          layout_matrix = rbind (c (1,1,1,1,1),
+                                                 c (1,1,1,1,1),
+                                                 c (1,1,1,1,1),
+                                                 c (1,1,1,1,1),
+                                                 c (2,2,2,2,2),
+                                                 c (2,2,2,2,2)))
+
+
+dev.off()
+
+
+
 # ============================
 
 # average trait per genus
-size_genus <- tapply (traits$Size,
+size_genus <- tapply (traits$Body_size,
                       list (traits$Genus),
                       mean,na.rm=T)
 
 # depth
-depth_genus <- tapply (as.numeric(gsub (",",".",traits$Depth_mean)),
+depth_genus <- tapply (traits$Depth_range,
                        list (traits$Genus),
                        mean,na.rm=T)
 
-
+# TL
+TL_genus <- tapply (traits$Trophic_level,
+                       list (traits$Genus),
+                       mean,na.rm=T)
 
 
 # going deeper in depth and food chain?
@@ -342,13 +632,12 @@ fish_year <- split (fisheries_wtrait, fisheries_wtrait$Year)
 
 
 
-
 # size and depth
-fish_year_size_depth <- lapply (fish_year, function (i) {
+fish_year_size_depth_TL <- lapply (fish_year, function (i) {
   
   
   fish_year_genus <- tapply (i$CatchAmount_t,
-                             list (i$Genus),
+                             list (i$Genus_match),
                              sum)
   # Mean size among the most frequent nsp_choose 
   size_collect_species <- names (fish_year_genus[order(fish_year_genus,decreasing=T)][1:nsp_choose])
@@ -359,19 +648,24 @@ fish_year_size_depth <- lapply (fish_year, function (i) {
   depth_collect_species <- names (fish_year_genus[order(fish_year_genus,decreasing=T)][1:nsp_choose])
   depth_collect_species <- depth_genus[which(names (depth_genus) %in% depth_collect_species)]
   mean_depth_collect_species<- mean(depth_collect_species,na.rm=T)
+  # TL
+  TL_collect_species <- names (fish_year_genus[order(fish_year_genus,decreasing=T)][1:nsp_choose])
+  TL_collect_species <- TL_genus[which(names (TL_genus) %in% TL_collect_species)]
+  mean_TL_collect_species<- mean(TL_collect_species,na.rm=T)
   
   
   # bind 
-  averages_size_depth <- data.frame (size= mean_size_collect_species,
-                                     depth = mean_depth_collect_species)
+  averages_size_depth_TL <- data.frame (size= mean_size_collect_species,
+                                     depth = mean_depth_collect_species,
+                                     TL = mean_TL_collect_species)
   ; # return
-  averages_size_depth
+  averages_size_depth_TL
   
   
 })
 
 # dataframe
-fish_year_df <- data.frame(size = do.call(rbind,fish_year_size_depth))
+fish_year_df <- data.frame(size = do.call(rbind,fish_year_size_depth_TL))
 fish_year_df$year <- rownames(fish_year_df)
 
 
@@ -379,88 +673,285 @@ fish_year_df$year <- rownames(fish_year_df)
 fish_year_df <- melt (fish_year_df, id.var = "year")
 levels(fish_year_df$variable)[which(levels(fish_year_df$variable) == "size.size")] <- "Size" 
 levels(fish_year_df$variable)[which(levels(fish_year_df$variable) == "size.depth")] <- "Depth" 
+levels(fish_year_df$variable)[which(levels(fish_year_df$variable) == "size.TL")] <- "TL" 
+
 
 # 
-plot_size_depth<-ggplot (fish_year_df, aes (x=year, y=value,group=variable,colour=variable)) + 
+plot_size_depth<-ggplot (fish_year_df, 
+                         aes (x=as.numeric(year), 
+                              y=value
+                              )) + 
+  
+  geom_smooth(method = "gam") + 
+  facet_wrap (~variable,ncol=3,scales = "free")+
   
   geom_point() + 
   
-  geom_smooth(method = "gam") + 
-
-  xlab ("Year") + theme_classic()+
-  
-  scale_colour_viridis_d(option="viridis", begin = 0.2,end=0.7)+
-  # Add a second axis and specify its features
-  # Custom the Y scales:
-  scale_y_continuous(
-    
-    # Features of the first axis
-    name = "Size (cm)",
-    
-    # Add a second axis and specify its features
-    sec.axis = sec_axis( trans=~., name="Depth (m)")
-  ) + 
-  
-  scale_x_discrete(
-  
-      breaks = seq(min(fish_year_df$year), 
-                 max(fish_year_df$year), by = 10)
-      
-      ) +
-  theme(axis.text.x = element_text(angle=0,size=8),
-        legend.position = c(0.8,0.1),
-        legend.text = element_text(size=13),
-        axis.title = element_text(size=15),
-        legend.title = element_blank()) 
   
 
+  xlab ("Year") + theme_classic()
+  
+  
 
-pdf (here ("output", "size_depth_catch_fish.pdf"),height=5,width=5)
+pdf (here ("output", "size_depth_catch_fish.pdf"),height=4,width=8)
 plot_size_depth
 dev.off()
 
+
+# THE TRAIT SPACE
+
+# the regional trait space
+average_traits_whole_region <- traits[,-97] %>% 
+  
+  group_by(Genus) %>% 
+  
+  summarise (Body_size = mean (Body_size,na.rm=T),  
+             Trophic_level = mean (Trophic_level,na.rm=T), 
+             Depth_range = mean (Depth_range,na.rm=T), 
+             Diel_activity = getmode (Diel_activity), 
+             Size_group = getmode (Size_group), 
+             Level_water = getmode (Level_water))  %>%
+  
+  
+  select (Genus, Body_size, Trophic_level, Depth_range, 
+          Diel_activity, Size_group, Level_water)  
+
+
+# the first row is empty
+average_traits_whole_region <- average_traits_whole_region[-1,]
+
+# transform categorical into ranking traits
+# group size
+average_traits_whole_region$Size_group [which(average_traits_whole_region$Size_group == "sol")] <- 1
+average_traits_whole_region$Size_group [which(average_traits_whole_region$Size_group == "pair")] <- 2
+average_traits_whole_region$Size_group [which(average_traits_whole_region$Size_group == "smallg")] <- 3
+average_traits_whole_region$Size_group [which(average_traits_whole_region$Size_group == "medg")] <- 4
+average_traits_whole_region$Size_group [which(average_traits_whole_region$Size_group == "largeg")] <- 5
+average_traits_whole_region$Size_group <- ordered (average_traits_whole_region$Size_group) # ordered
+
+# level water
+average_traits_whole_region$Level_water [which(average_traits_whole_region$Level_water == "bottom")] <- 1
+average_traits_whole_region$Level_water [which(average_traits_whole_region$Level_water == "low")] <- 2
+average_traits_whole_region$Level_water [which(average_traits_whole_region$Level_water == "high")] <- 3
+average_traits_whole_region$Level_water <- ordered (average_traits_whole_region$Level_water) # ordered
+
+# daily activity
+average_traits_whole_region$Diel_activity <- ifelse (average_traits_whole_region$Diel_activity %in% c("night", "both"),
+                                        1,0)
+average_traits_whole_region<- data.frame(average_traits_whole_region)
+rownames (average_traits_whole_region) <- average_traits_whole_region$Genus
+average_traits_whole_region<- average_traits_whole_region[,-1]
+
+# reef fish genera
+average_traits_whole_region <- average_traits_whole_region[which(rownames(average_traits_whole_region) %in% 
+                                                                   reef_fish$Genus),]
+
+# distance matrix
+# turning ranks into numerics
+average_traits_whole_region$Size_group <- as.numeric(average_traits_whole_region$Size_group)
+average_traits_whole_region$Level_water <- as.numeric(average_traits_whole_region$Level_water)
+gower_matrix <- vegdist (average_traits_whole_region[,-which(colnames(average_traits_whole_region) == "Diel_activity")],
+                         method="gower",na.rm=T)
+
+
+# principal coordinate analysis
+# Building the functional space based on a PCOA 
+pcoa_whole<-pcoa(gower_matrix,correction = "cailliez") # quasieuclid() transformation to make the gower matrix as euclidean. nf= number of axis 
+
+#barplot(pco$eig) # barplot of eigenvalues for each axis 
+(Inertia2<-(pcoa_whole$values$Eigenvalues[1]+pcoa_whole$values$Eigenvalues[2]+pcoa_whole$values$Eigenvalues[3]) /(sum(pcoa_whole$values$Eigenvalues[which(pcoa_whole$values$Eigenvalues>0)]))) # percentage of inertia explained by the two first axes
+
+## only the frst axis
+(Inertia.first <- (pcoa_whole$values$Eigenvalues[1]) /(sum(pcoa_whole$values$Eigenvalues[which(pcoa_whole$values$Eigenvalues>0)])))
+## only the frst axis
+(Inertia.scnd <- (pcoa_whole$values$Eigenvalues[2]) /(sum(pcoa_whole$values$Eigenvalues[which(pcoa_whole$values$Eigenvalues>0)])))
+## only the frst axis
+(Inertia.trd <- (pcoa_whole$values$Eigenvalues[3]) /(sum(pcoa_whole$values$Eigenvalues[which(pcoa_whole$values$Eigenvalues>0)])))
+Inertia.first+Inertia.scnd
+## complete space
+all <- data.frame (pcoa_whole$vectors[,1:2],
+              ext = F,
+              sp = rownames(average_traits_whole_region))
+a <- all [chull(all[,1:2], y = NULL),] # its convex hull
+
+# match ordination and traits
+# coral associated
+catched_fish <-cbind(all, ext1=ifelse(all$sp %in% 
+                                        fisheries_wtrait$Genus_match,T,F))
+catched_fish <-catched_fish[which(catched_fish$ext1==T),]
+catched_fish_set <- catched_fish [chull(catched_fish, y = NULL),]
+
+# catched_fish_set per region
+
+catched_fish_region <- lapply (year_composition_region, function (i){
+  
+  # identify catched spp
+  catched_fish <-cbind(all, ext1=ifelse(all$sp %in% 
+                                          colnames(i),T,F))
+  catched_fish <-catched_fish[which(catched_fish$ext1==T),]
+  catched_fish_set <- catched_fish [chull(catched_fish, y = NULL),]
+  catched_fish_set
+})
+names(catched_fish_region) <- unique(fisheries_wtrait$Region)
+
+## plot A (complete space)
+plotA <- ggplot(a, aes(Axis.1, Axis.2)) + 
+  geom_point(size=2) + theme_bw()+
+  geom_polygon(data=a, aes (Axis.1,Axis.2),
+               alpha=0.6,
+               fill="gray",
+               colour = "black",
+               size=1,
+               linetype = 2) + # complete space
+  geom_polygon(data=catched_fish_set, aes (Axis.1,Axis.2),
+               alpha=0.3,
+               fill="red",
+               colour = "red",
+               size=1,
+               linetype = 3) +
+  xlab(paste ("Axis I:", round(Inertia.first*100,2),"%"))+
+  ylab(paste ("Axis II:", round(Inertia.scnd*100,2),"%"))
+ 
+
+## correlations to project trait values into the ordination
+correlations <- cor (data.matrix(data.frame (average_traits_whole_region[,-which(colnames(average_traits_whole_region) == "Diel_activity")],
+                                pcoa_whole$vectors[,1:3])),
+                     use = "complete.obs")
+correlations<-correlations [-which(rownames(correlations) %in% c("Axis.1","Axis.2","Axis.3")),
+                                   c("Axis.1","Axis.2")]# interesting correlations
+
+# show traits in the trait space
+
+
+plotA <- plotA + geom_segment(aes(x = 0, y = 0, 
+                         xend = correlations[1,1]*0.2, 
+                         yend = correlations[1,2]*0.2),size = 1,
+                     color="black",
+                     arrow = arrow(length = unit(.35, "cm")))  + 
+  ## annotate
+  annotate(geom="text",x=correlations[1,1]*0.25,
+           y=correlations[1,2]*0.22,label="Total length",
+           color="black") +
+  
+  geom_segment(aes(x = 0, y = 0, 
+                   xend = correlations[2,1]*0.2, 
+                   yend = correlations[2,2]*0.2),size = 1,
+               color="black",
+               arrow = arrow(length = unit(.35, "cm"))) + 
+  annotate(geom="text",x=correlations[2,1]*0.25,
+           y=correlations[2,2]*0.22,label="Trophic level",
+           color="black") +
+  
+  geom_segment(aes(x = 0, y = 0, 
+                   xend = correlations[3,1]*0.2, 
+                   yend = correlations[3,2]*0.2),size = 1,
+               color="black",
+               arrow = arrow(length = unit(.35, "cm"))) + 
+  annotate(geom="text",x=correlations[3,1]*0.45,
+           y=correlations[3,2]*0.2,label="Depth range",
+           color="black") +
+  
+  geom_segment(aes(x = 0, y = 0, 
+                   xend = correlations[4,1]*0.2, 
+                   yend = correlations[4,2]*0.2),size = 1,
+               color="black",
+               arrow = arrow(length = unit(.35, "cm"))) + 
+  annotate(geom="text",x=correlations[4,1]*0.25,
+           y=correlations[4,2]*0.29,label="Group size",
+           color="black") + 
+  
+  geom_segment(aes(x = 0, y = 0, 
+                   xend = correlations[5,1]*0.2, 
+                   yend = correlations[5,2]*0.2),size = 1,
+               color="black",
+               arrow = arrow(length = unit(.35, "cm"))) + 
+  annotate(geom="text",x=correlations[5,1]*0.28,
+           y=correlations[5,2]*0.23,label="Water level",
+           color="black")
+
+
+# region spaces
+plotB <- lapply (catched_fish_region, function (i)
+  
+  
+  ggplot(a, aes(Axis.1,Axis.2)) + 
+    geom_point(size=2) + theme_bw()+
+    geom_polygon(data=a, aes (Axis.1,Axis.2),
+                 alpha=0.6,
+               fill="gray",
+               colour = "black",
+               size=1,
+               linetype = 2) + # complete space
+  geom_polygon(data=i, aes (Axis.1,Axis.2),
+               alpha=0.3,
+               fill="red",
+               colour = "red",
+               size=1,
+               linetype = 3) 
+
+)
+
+grid.arrange(plotA,
+             plotB[[1]]+theme(axis.text = element_blank(),
+                              axis.title = element_blank())+
+               ggtitle("N"),
+             plotB[[2]]+theme(axis.text = element_blank(),
+                              axis.title = element_blank())+
+               ggtitle("NE"),
+             plotB[[3]]+theme(axis.text = element_blank(),
+                              axis.title = element_blank())+
+               ggtitle("SE"),
+             plotB[[4]]+theme(axis.text = element_blank(),
+                              axis.title = element_blank())+
+               ggtitle("S"),
+             layout_matrix = rbind (c(1,1),
+                                    c(1,1),
+                                    c(2,3),
+                                    c(4,5)))
+
+# ==============================================================
 
 # Are fisheries getting nutritionally poorer over time?
 # zinc
 
 zinc_genus <- tapply (fisheries_wtrait$Zinc_mu,
-                       list (fisheries_wtrait$Genus,
+                       list (fisheries_wtrait$Genus_match,
                              fisheries_wtrait$Region),
                        mean,na.rm=T)
 
 # iron
 iron_genus <- tapply (fisheries_wtrait$Iron_mu,
-                      list (fisheries_wtrait$Genus,
+                      list (fisheries_wtrait$Genus_match,
                             fisheries_wtrait$Region),
                       mean,na.rm=T)
 
 # omega 3
 omega_genus <- tapply (fisheries_wtrait$Omega_3_mu,
-                      list (fisheries_wtrait$Genus,
+                      list (fisheries_wtrait$Genus_match,
                             fisheries_wtrait$Region),
                       mean,na.rm=T)
 
 # protein
 protein_genus <- tapply (fisheries_wtrait$Protein_mu,
-                      list (fisheries_wtrait$Genus,
+                      list (fisheries_wtrait$Genus_match,
                             fisheries_wtrait$Region),
                       mean,na.rm=T)
 
 # calcium
 calcium_genus <- tapply (fisheries_wtrait$Calcium_mu,
-                         list (fisheries_wtrait$Genus,
+                         list (fisheries_wtrait$Genus_match,
                                fisheries_wtrait$Region),
                          mean,na.rm=T)
 
 # selenium
 selenium_genus <- tapply (fisheries_wtrait$Selenium_mu,
-                         list (fisheries_wtrait$Genus,
+                         list (fisheries_wtrait$Genus_match,
                                fisheries_wtrait$Region),
                          mean,na.rm=T)
 
 # vitA
 vitA_genus <- tapply (fisheries_wtrait$Vitamin_A_mu,
-                          list (fisheries_wtrait$Genus,
+                          list (fisheries_wtrait$Genus_match,
                                 fisheries_wtrait$Region),
                           mean,na.rm=T)
 
@@ -473,7 +964,7 @@ fish_year_nutrition <- lapply (fish_year, function (i)
   
   
   fish_year_genus <- tapply (i$CatchAmount_t,
-                             list (i$Genus,
+                             list (i$Genus_match,
                                    i$Region),
                              sum)
   
@@ -554,7 +1045,7 @@ rownames(genus_nutrient_composition) <- genus_data
 
 # weigth nutrient composition by catch amount
 catch_amount_genus <- tapply (fisheries_wtrait$CatchAmount_t,
-                          list (fisheries_wtrait$Genus),
+                          list (fisheries_wtrait$Genus_match),
                       sum,na.rm=T)
 # removing missing data
 catch_amount_genus<-catch_amount_genus[which(rownames (catch_amount_genus) %in% genus_data)]
@@ -667,7 +1158,7 @@ dev.off()
 
 TL_fisheries <- tapply (fisheries_wtrait$CatchAmount_t,
         list(fisheries_wtrait$Year,
-             fisheries_wtrait$Diet_2012,
+             fisheries_wtrait$Diet,
              fisheries_wtrait$Region),
         sum, default = 0) 
 
@@ -699,16 +1190,17 @@ selected_fish_trend <- tapply (fisheries_wtrait$CatchAmount_t,
                   list(fisheries_wtrait$Year,
                        #fisheries_wtrait$Diet_2012,
                        fisheries_wtrait$Region,
-                       fisheries_wtrait$Genus),
+                       fisheries_wtrait$Genus_match),
                   sum) 
 
 selected_fish_trend<-melt (selected_fish_trend)
-colnames(selected_fish_trend) <- c("Year",  "Region", "Genus","value")
+colnames(selected_fish_trend) <- c("Year",  "Region", "Genus_match","value")
 
 # plot
-sel_spp_trends <- ggplot (selected_fish_trend[which(selected_fish_trend$Genus %in% 
-                      c("Scarus", "Sparisoma",
-                        "Acanthurus", 
+sel_spp_trends <- ggplot (selected_fish_trend[which(selected_fish_trend$Genus_match %in% 
+                      c("Scarus", 
+                        "Sparisoma",
+                        "Balistes", 
                         "Lutjanus",
                         "Mycteroperca",
                         "Epinephelus",
@@ -716,7 +1208,7 @@ sel_spp_trends <- ggplot (selected_fish_trend[which(selected_fish_trend$Genus %i
         
         
         aes (x=Year, y=log(value),
-             colour = Genus),alpha=0.5) + 
+             colour = Genus_match),alpha=0.5) + 
   facet_wrap(~Region,scales = "free")+
   geom_line(size=1) + 
   xlab ("Year") + 
@@ -738,9 +1230,8 @@ sel_spp_trends <- ggplot (selected_fish_trend[which(selected_fish_trend$Genus %i
 
 
 
-agg1<-aggregate(CatchAmount_t~Region+Genus+Year,sum,data=fisheries_wtrait)
+agg1<-aggregate(CatchAmount_t~Region+Genus_match+Year,sum,data=fisheries_wtrait)
 
-head(agg1)
 
 # poison smooth 
 poison_smooth <- function(...) {
@@ -750,24 +1241,45 @@ poison_smooth <- function(...) {
 }
 
 
-trend_sel_sp_region <- ggplot(agg1[which(agg1$Genus %in% 
+trend_sel_sp_region <- ggplot(agg1[which(agg1$Genus_match %in% 
                     c("Scarus", "Sparisoma",
-                     "Acanthurus", "Lutjanus",
+                     "Balistes", "Lutjanus",
                      "Mycteroperca",
                      "Epinephelus",
                      "Ocyurus")),],
-       aes (x=Year, y=sqrt(CatchAmount_t),colour = Genus))+
+       aes (x=Year, y=sqrt(CatchAmount_t),colour = Genus_match))+
   geom_point() + 
   facet_wrap(~Region,scales = "free")+
   poison_smooth(formula = y ~ s(x, bs = "cs",k=3)) + theme_classic() + 
-  scale_colour_viridis_d(option = "viridis", begin=0.1,end=0.9)
+  scale_colour_viridis_d(option = "magma", begin=0.1,end=0.9)
   
-
-
-
-pdf (here ("output", "sel_spp_trends.pdf"),height=5,width=6)
-
 trend_sel_sp_region
+
+## cartilaginous fish
+
+trend_sel_sp_region_cart <- ggplot(agg1[which(agg1$Genus_match %in% 
+                                           c("Carcharhinus", "Ginglymostoma")),],
+                              aes (x=Year, y=sqrt(CatchAmount_t),colour = Genus_match))+
+  geom_point() + 
+  facet_wrap(~Region,scales = "free")+
+  poison_smooth(formula = y ~ s(x, bs = "cs",k=3)) + theme_classic() + 
+  scale_colour_viridis_d(option = "magma", begin=0.1,end=0.6)
+
+
+pdf (here ("output", "sel_spp_trends.pdf"),height=7,width=9)
+
+grid.arrange (trend_sel_sp_region+theme (axis.title.x = element_blank(), 
+                                         axis.text = element_text(size=7), 
+                                          legend.key.width = unit(0.1,"cm"),
+                                         legend.key.height = unit(0.5,"cm"),
+                                         legend.title = element_blank(),
+                                         legend.text = element_text(size=8)),
+              trend_sel_sp_region_cart+theme (axis.title.x = element_blank(), 
+                                              axis.text = element_text(size=7),
+                                              legend.key.width = unit(0.1,"cm"),
+                                              legend.key.height = unit(0.5,"cm"),
+                                              legend.title = element_blank(),
+                                              legend.text = element_text(size=8)))
 
 dev.off()
 
