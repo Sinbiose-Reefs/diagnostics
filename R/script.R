@@ -1255,16 +1255,28 @@ TL_fisheries <- tapply (fisheries_wtrait$CatchAmount_t,
 
 TL_fisheries<-melt (TL_fisheries)
 colnames(TL_fisheries) <- c("Year", "TrGroup", "Region", "value")
+# change region names
+
+TL_fisheries$Region <- recode_factor(TL_fisheries$Region, "Sul" = "South", "SE" = "Southeast",
+                                     "NE" = "Northeast", 
+                                     "Norte" = "North")
 
 ## pot trnds over time
-trophic_level_trends <- ggplot (TL_fisheries, aes (x=Year, y=value,
+trophic_level_trends <- ggplot (TL_fisheries, aes (x=Year, y=log(value),
                      colour = TrGroup)) + 
   facet_wrap(~Region,scales = "free")+
   geom_line(size=1) + 
   xlab ("Year") + 
   ylab ("Sum catch (thousands of tonnes)") + 
   theme_classic() + 
-  scale_colour_viridis_d(option = "viridis")
+  scale_colour_viridis_d(option = "viridis") + 
+  theme (strip.text = element_text(face="bold"),
+         strip.text.x = element_text(size = 10, color = "black", 
+                                     face = "bold"),
+         strip.background = element_rect(color="black", 
+                                         fill="gray60",
+                                         size=1.5, linetype="solid"
+         ))
 
 pdf (here ("output", "TL_trends.pdf"),height=5,width=6)
 trophic_level_trends
