@@ -215,12 +215,25 @@ pcoa_fish_year <- cbind (pcoa_fish_year$vectors,
 # dataframe with data
 pcoa_fish_year<-as.data.frame(pcoa_fish_year)
 
+
+
+# point size (catch per year)
+catch_year <- tapply (fisheries_wtrait$CatchAmount_t,
+                      list(fisheries_wtrait$Year),
+                      sum) 
+# bind
+pcoa_fish_year$catch <- (catch_year) # point size (half size)
+
+
 # ordination (projection of beta diversity )
 # help here
 # https://ggplot2.tidyverse.org/reference/geom_path.html
 ordination1<-ggplot(data=pcoa_fish_year,
        aes(x=Axis.1,y=Axis.2)) + 
-  geom_point(aes(colour=as.numeric(year)),shape=1,size=3) + # add the point markers
+  geom_point(aes(colour=as.numeric(year),
+                 size = catch),
+             
+             shape=1)+
    geom_path(aes(colour=as.numeric(year)),alpha=0.5)+
 
   geom_text(aes(label=year),
@@ -231,7 +244,6 @@ ordination1<-ggplot(data=pcoa_fish_year,
   theme_bw() +
   
   theme(legend.position = "none")
-
 
 
 # correlation of genus to the axes
@@ -341,6 +353,7 @@ comp_change <- bind_rows(pcoa_fish_year %>%
                                          fill="gray60",
                                          size=1.5, linetype="solid"
          )) 
+
 
 
 # arrange plots
@@ -462,13 +475,24 @@ pcoa_fish_year_func <- cbind (pcoa_fish_year_func$vectors,
 pcoa_fish_year_func<-as.data.frame(pcoa_fish_year_func)
 
 
+# point size (catch per year)
+
+catch_year <- tapply (fisheries_wtrait$CatchAmount_t,
+                      list(fisheries_wtrait$Year),
+                      sum) 
+# bind
+pcoa_fish_year_func$catch <- (catch_year) # point size (half size)
 
 # ordination (projection of beta diversity )
 # help here
 # https://ggplot2.tidyverse.org/reference/geom_path.html
-ordination1_func<-ggplot(data=pcoa_fish_year_func,
+ordination1_func <- ggplot(data=pcoa_fish_year_func,
                     aes(x=Axis.1,y=Axis.2)) + 
-  geom_point(aes(colour=as.numeric(year)),shape=1,size=3) + # add the point markers
+  
+  geom_point(aes(colour=as.numeric(year),
+                 size = catch),
+                
+               shape=1) + # add the point markers
   geom_path(aes(colour=as.numeric(year)),alpha=0.5)+
   
   geom_text(aes(label=year),
@@ -480,7 +504,7 @@ ordination1_func<-ggplot(data=pcoa_fish_year_func,
   theme(legend.position = "none")
 
 
-
+ordination1_func
 
 # correlation of genus to the axes
 correlation_func <-data.frame( cor (funct_comp$matrix.T,
@@ -865,9 +889,28 @@ catched_fish_region <- lapply (year_composition_region, function (i){
 })
 names(catched_fish_region) <- unique(fisheries_wtrait$Region)
 
+# points proportional to the catch
+catch_year_genus <- fisheries_wtrait %>%
+  
+  group_by(Genus_match) %>% 
+  
+  summarize(sum_catch=sum(CatchAmount_t,na.rm=T),
+  ) 
+
+# size
+all <- data.frame (all , 
+                  catch_year_genus [match (all$sp, catch_year_genus$Genus_match), "sum_catch"])
+
+
 ## plot A (complete space)
 plotA <- ggplot(a, aes(Axis.1, Axis.2)) + 
-  geom_point(size=2) + theme_bw()+
+  geom_point(size=4) + theme_bw()+
+
+  # point size
+  geom_point(data = all [is.na (all$sum_catch) != T,], 
+             aes (size=(sum_catch))) + 
+  theme_bw()+
+  
   geom_polygon(data=a, aes (Axis.1,Axis.2),
                alpha=0.6,
                fill="gray",
@@ -881,8 +924,24 @@ plotA <- ggplot(a, aes(Axis.1, Axis.2)) +
                size=1,
                linetype = 3) +
   xlab(paste ("Axis I:", round(Inertia.first*100,2),"%"))+
-  ylab(paste ("Axis II:", round(Inertia.scnd*100,2),"%"))
+  ylab(paste ("Axis II:", round(Inertia.scnd*100,2),"%")) + 
+  geom_text_repel(data = a, aes (x=Axis.1, y=Axis.2, label=(sp)),
+                  size=4)
  
+
+
+plotA
+
+# genus with large amount of catch
+most_catched <- all[order(all$sum_catch, decreasing=T),]
+
+
+# plot the five most catched
+nsp_to_plot <- 10
+plotA <- plotA + geom_text_repel(data = most_catched[1:nsp_to_plot,], 
+                        aes (x=Axis.1, y=Axis.2, label=(sp)),
+                        size=4) + 
+  theme (legend.position = "none")
 
 ## correlations to project trait values into the ordination
 correlations <- cor (data.matrix(data.frame (average_traits_whole_region[,-which(colnames(average_traits_whole_region) %in% c("Diel_activity", 
@@ -1257,7 +1316,9 @@ TL_fisheries<-melt (TL_fisheries)
 colnames(TL_fisheries) <- c("Year", "TrGroup", "Region", "value")
 # change region names
 
-TL_fisheries$Region <- recode_factor(TL_fisheries$Region, "Sul" = "South", "SE" = "Southeast",
+TL_fisheries$Region <- recode_factor(TL_fisheries$Region, 
+                                     "Sul" = "South", 
+                                     "SE" = "Southeast",
                                      "NE" = "Northeast", 
                                      "Norte" = "North")
 
@@ -1267,7 +1328,7 @@ trophic_level_trends <- ggplot (TL_fisheries, aes (x=Year, y=log(value),
   facet_wrap(~Region,scales = "free")+
   geom_line(size=1) + 
   xlab ("Year") + 
-  ylab ("Sum catch (thousands of tonnes)") + 
+  ylab ("Sum catch (thousands of tonnes, log scale)") + 
   theme_classic() + 
   scale_colour_viridis_d(option = "viridis") + 
   theme (strip.text = element_text(face="bold"),
