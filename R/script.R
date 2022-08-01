@@ -904,7 +904,7 @@ all <- data.frame (all ,
 
 ## plot A (complete space)
 plotA <- ggplot(a, aes(Axis.1, Axis.2)) + 
-  geom_point(size=4) + theme_bw()+
+  geom_point(size=3,shape=3 ) + theme_bw()+
 
   # point size
   geom_point(data = all [is.na (all$sum_catch) != T,], 
@@ -930,7 +930,6 @@ plotA <- ggplot(a, aes(Axis.1, Axis.2)) +
  
 
 
-plotA
 
 # genus with large amount of catch
 most_catched <- all[order(all$sum_catch, decreasing=T),]
@@ -958,39 +957,39 @@ correlations<-correlations [-which(rownames(correlations) %in% c("Axis.1","Axis.
 plotA <- plotA + geom_segment(aes(x = 0, y = 0, 
                          xend = correlations[1,1]*0.2, 
                          yend = correlations[1,2]*0.2),size = 1,
-                     color="black",
+                     color="#2B7A0B",
                      arrow = arrow(length = unit(.35, "cm")))  + 
   ## annotate
   annotate(geom="text",x=correlations[1,1]*0.19,
            y=correlations[1,2]*0.30,label="Total length",
-           color="black") +
+           color="#2B7A0B") +
   
   geom_segment(aes(x = 0, y = 0, 
                    xend = correlations[2,1]*0.2, 
                    yend = correlations[2,2]*0.2),size = 1,
-               color="black",
+               color="#2B7A0B",
                arrow = arrow(length = unit(.35, "cm"))) + 
   annotate(geom="text",x=correlations[2,1]*0.25,
            y=correlations[2,2]*0.22,label="Trophic level",
-           color="black") +
+           color="#2B7A0B") +
   
   geom_segment(aes(x = 0, y = 0, 
                    xend = correlations[3,1]*0.2, 
                    yend = correlations[3,2]*0.2),size = 1,
-               color="black",
+               color="#2B7A0B",
                arrow = arrow(length = unit(.35, "cm"))) + 
   annotate(geom="text",x=correlations[3,1]*0.35,
            y=correlations[3,2]*0.2,label="Depth range",
-           color="black") +
+           color="#2B7A0B") +
   
   geom_segment(aes(x = 0, y = 0, 
                    xend = correlations[4,1]*0.2, 
                    yend = correlations[4,2]*0.2),size = 1,
-               color="black",
+               color="#2B7A0B",
                arrow = arrow(length = unit(.35, "cm"))) + 
   annotate(geom="text",x=correlations[4,1]*0.25,
-           y=correlations[4,2]*0.29,label="Level water : Group size",
-           color="black")  
+           y=correlations[4,2]*0.25,label="Level water : Group size",
+           color="#2B7A0B")  
   
  
 
@@ -1000,7 +999,7 @@ plotB <- lapply (catched_fish_region, function (i)
   
   
   ggplot(a, aes(Axis.1,Axis.2)) + 
-    geom_point(size=2) + theme_bw()+
+    geom_point(size=2,shape=3) + theme_bw()+
     geom_polygon(data=a, aes (Axis.1,Axis.2),
                  alpha=0.6,
                fill="gray",
@@ -1018,7 +1017,7 @@ plotB <- lapply (catched_fish_region, function (i)
 
 
 # save
-pdf (here ("output", "trait_space_fishing.pdf"),height=7,width=5)
+pdf (here ("output", "trait_space_fishing.pdf"),height=9,width=6)
 
 grid.arrange(plotA,
              plotB[[1]]+theme(axis.text = element_blank(),
