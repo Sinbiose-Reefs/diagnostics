@@ -1160,7 +1160,7 @@ plot_nut <- ggplot (fish_year_nutrition, aes (x=year,
                                         fill="gray60",
                                         size=1.5, linetype="solid"
         )) + 
-  scale_colour_viridis_d(name = "Region")
+  scale_colour_viridis_d(name = "Region", begin=0,end=1)
   
 
 
@@ -1336,7 +1336,7 @@ trophic_level_trends <- ggplot (TL_fisheries, aes (x=Year, y=log(value),
          strip.background = element_rect(color="black", 
                                          fill="gray60",
                                          size=1.5, linetype="solid"
-         ))
+         )) 
 
 pdf (here ("output", "TL_trends.pdf"),height=5,width=6)
 trophic_level_trends
