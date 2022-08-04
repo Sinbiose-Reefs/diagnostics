@@ -1358,15 +1358,15 @@ catch_year_genus <- fisheries_wtrait %>%
   summarize(sum_catch=sum(CatchAmount_t,na.rm=T),
   ) 
 
-# 5% threshold to consider bycatch
-bycatch_year <-sum(catch_year_genus$sum_catch,na.rm=T)*percentage_for_bycatch
-catch_year_genus<- catch_year_genus[which(catch_year_genus$sum_catch >bycatch_year),]
+#bycatch_year <-sum(catch_year_genus$sum_catch,na.rm=T)*percentage_for_bycatch
+#catch_year_genus<- catch_year_genus[which(catch_year_genus$sum_catch >bycatch_year),]
 
 # size
 all_overall <- data.frame (all , 
                         catch_year_genus [match (all$sp, 
                                                  catch_year_genus$Genus_match), 
                                           "sum_catch"])
+
 # rm NAs
 all_overall<-all_overall[is.na(all_overall$sum_catch) != T,]
 
@@ -1385,6 +1385,7 @@ plotA <- ggplot(a, aes(Axis.1,Axis.2)) +
   geom_text(data = a, aes (x=Axis.1, y=Axis.2, label=(sp)),
             size=3)+ 
   theme (legend.position = "none")
+
 plotA2 <- plotA+ geom_polygon(data=a_overall, aes (Axis.1,Axis.2),
                               alpha=0.3,
                               fill="#5BB318",
@@ -1393,7 +1394,7 @@ plotA2 <- plotA+ geom_polygon(data=a_overall, aes (Axis.1,Axis.2),
                               linetype = 3) +
   # point size
   geom_point(data = all_overall [is.na (all_overall$sum_catch) != T,], 
-             aes (size=(sum_catch)))+
+             aes (size=(sum_catch),alpha=0.3))+
   theme(legend.position = "none")
 
 # genus with large amount of catch
