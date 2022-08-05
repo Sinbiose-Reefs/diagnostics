@@ -135,6 +135,10 @@ fisheries_wtrait [grep("Haemulon", fisheries_wtrait$Genus_match),]
 fisheries_wtrait [grep("Kyphosus", fisheries_wtrait$Genus_match),]
 
 
+# omnivore spp
+unique(fisheries_wtrait [grep("om", fisheries_wtrait$Diet), "Genus"])
+
+
 
 # here we have the sharks
 unique(fisheries_wtrait[is.na(fisheries_wtrait$Class),"Genus_match"])
@@ -1492,12 +1496,12 @@ TL_fisheries$TrGroup <- factor(TL_fisheries$TrGroup,
                                levels = c("fc", "im", "is", "om", "hm", "hd"))
 
 ## pot trnds over time
-trophic_level_trends <- ggplot (TL_fisheries, aes (x=Year, y=log(value),
+trophic_level_trends <- ggplot (TL_fisheries, aes (x=Year, y=log(value+1),
                                                    colour = TrGroup)) + 
   facet_wrap(~Region,scales = "free")+
   geom_line(size=1) + 
   xlab ("Year") + 
-  ylab ("Sum catch (thousands of tonnes, log scale)") + 
+  ylab ("Sum catch (thousands of tonnes, log(x+1))") + 
   theme_classic() + 
   scale_colour_viridis_d(option = "viridis") + 
   theme (strip.text = element_text(face="bold"),
