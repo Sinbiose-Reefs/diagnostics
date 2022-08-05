@@ -1709,10 +1709,10 @@ omega_genus <- tapply (fisheries_wtrait$Omega_3_mu,
                       mean,na.rm=T)
 
 # protein
-protein_genus <- tapply (fisheries_wtrait$Protein_mu,
-                      list (fisheries_wtrait$Genus_match,
-                            fisheries_wtrait$Region),
-                      mean,na.rm=T)
+#protein_genus <- tapply (fisheries_wtrait$Protein_mu,
+#                      list (fisheries_wtrait$Genus_match,
+#                            fisheries_wtrait$Region),
+#                      mean,na.rm=T)
 
 # calcium
 calcium_genus <- tapply (fisheries_wtrait$Calcium_mu,
@@ -1733,8 +1733,25 @@ vitA_genus <- tapply (fisheries_wtrait$Vitamin_A_mu,
                           mean,na.rm=T)
 
 # list of nutrient data
-nutrient_data <- list (zinc_genus,iron_genus,omega_genus,protein_genus,
+nutrient_data <- list (zinc_genus,iron_genus,omega_genus,
+                       #protein_genus,
                        calcium_genus,selenium_genus , vitA_genus)
+
+# removing bycatch
+nutrient_data <- lapply (nutrient_data, function (i)
+
+  i [which(rownames(i) %in% notbycatch),]
+)
+
+# match with catch amount data
+#nutrient_data <- lapply (nutrient_data, function (i)
+#  
+#  i <- cbind (i, amount = catch_year_genus [match (rownames(i), 
+#                           catch_year_genus$Genus_match), 
+#                    "sum_catch"])
+#  
+#)
+
 # extract data
 fish_year_nutrition <- lapply (fish_year, function (i) 
   do.call(rbind, lapply (nutrient_data, function (k)  { # bind nutrient data
@@ -1764,7 +1781,9 @@ fish_year_nutrition <- lapply (fish_year, function (i)
 })))
 # name rows
 fish_year_nutrition<- lapply (fish_year_nutrition, function (i) {
-  rownames (i)<- c("Zinc","Iron", "Omega-3", "Protein","Calcium","Selenium","Vitamin-A")
+  rownames (i)<- c("Zinc","Iron", "Omega-3", 
+                   #"Protein",
+                   "Calcium","Selenium","Vitamin-A")
   ;
   i
 })
@@ -1821,7 +1840,9 @@ genus_nutrient_composition <- lapply (nutrient_data, function (i)
           
 )
 genus_nutrient_composition <- do.call(cbind,genus_nutrient_composition)
-colnames(genus_nutrient_composition) <- c("Zinc","Iron", "Omega-3", "Protein","Calcium","Selenium","Vitamin-A")
+colnames(genus_nutrient_composition) <- c("Zinc","Iron", "Omega-3",
+                                          #"Protein",
+                                          "Calcium","Selenium","Vitamin-A")
 
 
 
@@ -1907,10 +1928,11 @@ ordination_nut<-ordination_nut +
                                                 y = Axis.2*4,
                                                 label = (nutrient)),
                                            size=5,fontface = "italic",
-                                           colour="#1363DF",
+                                           colour="#5BB318",
                                            max.overlaps = 100)  + 
   xlab (paste ("Axis 1 (", round(Exp_axis1,2), "%)",sep="")) +
-  ylab (paste ("Axis 2 (", round(Exp_axis2,2), "%)",sep=""))
+  ylab (paste ("Axis 2 (", round(Exp_axis2,2), "%)",sep=""))+
+  xlim (c(-4.75,3))
 
 ordination_nut
 
