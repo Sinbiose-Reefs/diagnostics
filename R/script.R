@@ -52,6 +52,7 @@ traits$Trophic_level <- as.numeric(gsub (",",".",traits$Trophic_level))
 traits$Depth_range <- as.numeric(gsub (",",".",traits$Depth_range))
 traits$Depth_max<-as.numeric(gsub (",",".",traits$Depth_max))
 traits$Depth_min<-as.numeric(gsub (",",".",traits$Depth_min))
+
 # average depth
 traits$Depth_mean<- apply (cbind (traits$Depth_max,  
                                   traits$Depth_min),1,mean,na.rm=T)
@@ -94,19 +95,20 @@ fisheries$Genus_match <- genus[,1]
 
 
 ## matching with nutrients (predictions from Hicks et al. 2019)
-#nutrients <- read.csv (here ("data", "Species_Nutrient_Predictions.csv"))
+nutrients <- read.csv (here ("data", "Species_Nutrient_Predictions.csv"))
 
 
 #  genus
-#nutrients$Genus <- sapply(strsplit (nutrients$species, "_"), "[",1)
+nutrients$Genus <- sapply(strsplit (nutrients$species, "_"), "[",1)
 
 
 
 # bind nutrient content to the trait dataset
-#traits <- cbind (traits, 
-#                 nutrients[match (traits$Genus,
-#                                  
-#                                   (nutrients$Genus)),])
+traits <- cbind (traits, 
+                 nutrients[match (traits$Genus,
+                                  
+                                   (nutrients$Genus)),
+                           grep("mu", colnames(nutrients))]) # mu is the averaged nutrient estimates
 
 
 
@@ -138,10 +140,6 @@ fisheries_wtrait [grep("Kyphosus", fisheries_wtrait$Genus_match),]
 # omnivore spp
 unique(fisheries_wtrait [grep("om", fisheries_wtrait$Diet), "Genus"])
 
-
-
-# here we have the sharks
-unique(fisheries_wtrait[is.na(fisheries_wtrait$Class),"Genus_match"])
 
 
 
@@ -1052,7 +1050,7 @@ plot_size_depth<-ggplot (fish_year_df,
 
 # save plot
 
-pdf (here ("output", "size_depth_catch_fish.pdf"),height=4,width=8)
+pdf (here ("output", "size_depth_catch_fish.pdf"),height=6,width=5)
 plot_size_depth
 dev.off()
 
@@ -1502,7 +1500,6 @@ trophic_level_trends <- ggplot (TL_fisheries, aes (x=Year, y=log(value+1),
   geom_line(size=1) + 
   xlab ("Year") + 
   ylab ("Sum catch (thousands of tonnes, log(x+1))") + 
-  theme_classic() + 
   scale_colour_viridis_d(option = "viridis") + 
   theme (strip.text = element_text(face="bold"),
          strip.text.x = element_text(size = 10, color = "black", 
@@ -1512,7 +1509,7 @@ trophic_level_trends <- ggplot (TL_fisheries, aes (x=Year, y=log(value+1),
                                          size=1.5, linetype="solid"
          )) 
 
-pdf (here ("output", "TL_trends.pdf"),height=5,width=6)
+pdf (here ("output", "TL_trends.pdf"),height=6,width=6)
 trophic_level_trends
 dev.off()
 
@@ -1643,7 +1640,7 @@ trend_sel_sp_region_cart <- ggplot(agg1[which(agg1$Genus_match %in%
          ))
 
 # save
-pdf (here ("output", "sel_spp_trends.pdf"),height=12,width=7)
+pdf (here ("output", "sel_spp_trends.pdf"),height=13,width=7)
 
 grid.arrange (trend_sel_sp_region+theme (axis.title.x = element_blank(), 
                                          axis.text = element_text(size=7), 
@@ -1681,7 +1678,7 @@ dev.off()
 # ------------------------------------------
 
 
-# not in this paper
+# (not in this paper)
 
 
 
@@ -1934,6 +1931,8 @@ composition2<-grid.arrange(ordination_nut,
 
 
 dev.off()
+
+
 
 # ======================
 
