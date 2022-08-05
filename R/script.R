@@ -1915,7 +1915,11 @@ ordination_nut<-ggplot(data=pcoa_nut,
   #scale_colour_manual(values=c("A" = "red", "B" = "blue")) +
   coord_equal() +
   theme_bw() +
-  theme(legend.position = "none")
+  theme(legend.position = "none") + 
+  xlab (paste ("Axis 1 (", round(Exp_axis1,2), "%)",sep="")) +
+  ylab (paste ("Axis 2 (", round(Exp_axis2,2), "%)",sep=""))+
+  xlim (c(-4.75,3)) + 
+  ylim (c(-2.5,2)) 
 
 
 
@@ -1924,17 +1928,44 @@ ordination_nut<-ggplot(data=pcoa_nut,
 ordination_nut<-ordination_nut + 
   
                     geom_text_repel(data = correlation_nut,
-                                           aes (x=Axis.1*4,
-                                                y = Axis.2*4,
+                                           aes (x=Axis.1*5,
+                                                y = Axis.2*5,
                                                 label = (nutrient)),
                                            size=5,fontface = "italic",
                                            colour="#5BB318",
-                                           max.overlaps = 100)  + 
-  xlab (paste ("Axis 1 (", round(Exp_axis1,2), "%)",sep="")) +
-  ylab (paste ("Axis 2 (", round(Exp_axis2,2), "%)",sep=""))+
-  xlim (c(-4.75,3))
+                                           max.overlaps = 100)  
 
-ordination_nut
+ordination_nut + geom_segment(aes(x = 0, y = 0, 
+                                  xend = correlation_nut[1,1]*4, 
+                                  yend = correlation_nut[1,2]*4),size = 1,
+                              color="#2B7A0B",alpha=0.05,
+                              arrow = arrow(length = unit(.35, "cm"))) + 
+   geom_segment(aes(x = 0, y = 0, 
+                     xend = correlation_nut[2,1]*4, 
+                     yend = correlation_nut[2,2]*4),size = 1,
+                 color="#2B7A0B",alpha=0.05,
+                 arrow = arrow(length = unit(.35, "cm"))) + 
+  geom_segment(aes(x = 0, y = 0, 
+                   xend = correlation_nut[3,1]*4, 
+                   yend = correlation_nut[3,2]*4),size = 1,
+               color="#2B7A0B",alpha=0.05,
+               arrow = arrow(length = unit(.35, "cm"))) + 
+  geom_segment(aes(x = 0, y = 0, 
+                   xend = correlation_nut[4,1]*4, 
+                   yend = correlation_nut[4,2]*4),size = 1,
+               color="#2B7A0B",alpha=0.05,
+               arrow = arrow(length = unit(.35, "cm"))) + 
+  geom_segment(aes(x = 0, y = 0, 
+                   xend = correlation_nut[5,1]*4, 
+                   yend = correlation_nut[5,2]*4),size = 1,
+               color="#2B7A0B",alpha=0.05,
+               arrow = arrow(length = unit(.35, "cm"))) + 
+  geom_segment(aes(x = 0, y = 0, 
+                   xend = correlation_nut[6,1]*4, 
+                   yend = correlation_nut[6,2]*4),size = 1,
+               color="#2B7A0B",alpha=0.05,
+               arrow = arrow(length = unit(.35, "cm")))
+
 
 
 # arrange
