@@ -57,9 +57,34 @@ traits$Depth_mean<- apply (cbind (traits$Depth_max,
                                   traits$Depth_min),1,mean,na.rm=T)
 
 
-# fisheries ~year
+# aggregate data of QUimbayo et al. at the genus level
 require(dplyr)
 
+traits <- traits %>% 
+  
+  group_by(Genus) %>% 
+  
+  summarise (Body_size = mean (Body_size,na.rm=T),  
+             Trophic_level = mean (Trophic_level,na.rm=T), 
+             Depth_range = mean (Depth_range,na.rm=T), 
+             Depth_mean = mean (Depth_mean,na.rm=T),
+             Depth_max = mean (Depth_max,na.rm=T), 
+             Depth_min = mean (Depth_min,na.rm=T),
+             Diet = getmode(Diet),
+             Diel_activity = getmode (Diel_activity), 
+             Size_group = getmode (Size_group), 
+             Level_water = getmode (Level_water))  %>%
+  
+  
+  select (Genus, Body_size, Trophic_level, 
+          Depth_min,Depth_max,Depth_range,
+          Depth_mean, Diet,
+          Diel_activity, Size_group, Level_water)
+
+
+
+
+# fisheries ~year
 # genus
 genus <- strsplit(fisheries$TaxonName," ")
 genus <- do.call(rbind, genus)
@@ -69,19 +94,19 @@ fisheries$Genus_match <- genus[,1]
 
 
 ## matching with nutrients (predictions from Hicks et al. 2019)
-nutrients <- read.csv (here ("data", "Species_Nutrient_Predictions.csv"))
+#nutrients <- read.csv (here ("data", "Species_Nutrient_Predictions.csv"))
 
 
 #  genus
-nutrients$Genus <- sapply(strsplit (nutrients$species, "_"), "[",1)
+#nutrients$Genus <- sapply(strsplit (nutrients$species, "_"), "[",1)
 
 
 
 # bind nutrient content to the trait dataset
-traits <- cbind (traits, 
-                 nutrients[match (traits$Genus,
-                                  
-                                   (nutrients$Genus)),])
+#traits <- cbind (traits, 
+#                 nutrients[match (traits$Genus,
+#                                  
+#                                   (nutrients$Genus)),])
 
 
 
@@ -102,14 +127,23 @@ fisheries_wtrait <- cbind (fisheries_wtrait,
                            )
 
 
+# check some examples
+
+traits [grep("Haemulon", traits$Genus),]
+traits [grep("Kyphosus", traits$Genus),]
+fisheries_wtrait [grep("Haemulon", fisheries_wtrait$Genus_match),]
+fisheries_wtrait [grep("Kyphosus", fisheries_wtrait$Genus_match),]
+
+
+
 # here we have the sharks
 unique(fisheries_wtrait[is.na(fisheries_wtrait$Class),"Genus_match"])
 
 
 
 # equal column names (remove one)
-table(fisheries_wtrait[,25] == fisheries_wtrait[,117])
-fisheries_wtrait<- fisheries_wtrait[,-117]
+#table(fisheries_wtrait[,25] == fisheries_wtrait[,117])
+#fisheries_wtrait<- fisheries_wtrait[,-117]
 
 
 unique(fisheries_wtrait [which (fisheries_wtrait$Year %in% seq (1970,1973) & 
@@ -233,6 +267,7 @@ percentage_for_bycatch <- 0.01
 
 # filter
 bycatch_composition <- rowSums(year_composition [,-1])*percentage_for_bycatch
+
 # filter
 year_composition_filtered <- lapply (seq (1,nrow (year_composition)), function (i)
   
@@ -277,6 +312,7 @@ pcoa_fish_year<-as.data.frame(pcoa_fish_year)
 catch_year <- tapply (fisheries_wtrait$CatchAmount_t,
                       list(fisheries_wtrait$Year),
                       sum) 
+
 # bind
 pcoa_fish_year$catch <- (catch_year) # point size (half size)
 
@@ -547,8 +583,6 @@ ordination1_reg <- lapply (seq(1,length(dist_composition_pcoa)), function (i) {
 
 
 # arrange plots
-require(gridExtra)
-
 pdf (here ("output", "fisheries_composition.pdf"),height=10,width=10)
 
 compostion1<-grid.arrange(
@@ -587,8 +621,6 @@ average_traits <- fisheries_wtrait %>%
                                      Depth_mean = mean (Depth_mean,na.rm=T),
                                      Depth_max = mean (Depth_max,na.rm=T), 
                                      Depth_min = mean (Depth_min,na.rm=T),
-                                     
-                                     
                                      Diel_activity = getmode (Diel_activity), 
                                      Size_group = getmode (Size_group), 
                                      Level_water = getmode (Level_water))  %>%
@@ -1014,7 +1046,7 @@ plot_size_depth<-ggplot (fish_year_df,
   
   
 
-
+# save plot
 
 pdf (here ("output", "size_depth_catch_fish.pdf"),height=4,width=8)
 plot_size_depth
@@ -1031,7 +1063,7 @@ dev.off()
 # THE TRAIT SPACE
 
 # the regional trait space
-average_traits_whole_region <- traits[,-97] %>% 
+average_traits_whole_region <- traits %>% 
   
   group_by(Genus) %>% 
   
@@ -1279,9 +1311,6 @@ plots_year <- lapply (seq (min (fisheries_wtrait$Year), max(fisheries_wtrait$Yea
 
 require(magick)
 list_img <- list.files(path = here ("output", "figs_animation"), full.names = T)
-#list_img <- list_img [order (as.numeric (gsub ("p","",substr(list_img, 43, 45))),decreasing=F)]
-
-
 
 ##https://cran.r-project.org/web/packages/magick/vignettes/intro.html
 a_image<-image_read(list_img)
@@ -1321,7 +1350,9 @@ catched_fish_region <- lapply (year_region_composition_filtered, function (i){
                                           year_composition_set,T,F))
   catched_fish <-catched_fish[which(catched_fish$ext1==T),]
   catched_fish_set <- catched_fish [chull(catched_fish, y = NULL),]
-  catched_fish_set
+  res <- list (notbycatch = year_composition_set,
+                catched_fish = catched_fish_set)
+  res
 })
 names(catched_fish_region) <- unique(fisheries_wtrait$Region)
 
@@ -1339,7 +1370,7 @@ plotB <- lapply (catched_fish_region, function (i)
                  colour = "black",
                  size=1,
                  linetype = 2) + # complete space
-    geom_polygon(data=i, aes (Axis.1,Axis.2),
+    geom_polygon(data=i$catched_fish, aes (Axis.1,Axis.2),
                  alpha=0.3,
                  fill="#5BB318",
                  colour = "#2B7A0B",
@@ -1366,6 +1397,9 @@ all_overall <- data.frame (all ,
                         catch_year_genus [match (all$sp, 
                                                  catch_year_genus$Genus_match), 
                                           "sum_catch"])
+# Catched that is not bycatch
+notbycatch<-unique(unlist(sapply (catched_fish_region,"[[","notbycatch")))
+all_overall <- all_overall [which(rownames(all_overall) %in% notbycatch),]
 
 # rm NAs
 all_overall<-all_overall[is.na(all_overall$sum_catch) != T,]
@@ -1406,7 +1440,6 @@ plotA2 <- plotA2 + geom_text_repel(data = most_catched[1:nsp_to_plot,],
                                    aes (x=Axis.1, y=Axis.2, label=(sp)),
                                    size=4) 
 
-
 # save
 pdf (here ("output", "trait_space_fishing.pdf"),height=9,width=6)
 
@@ -1435,6 +1468,213 @@ dev.off()
 # -----------------------------
 
 
+# variation in diet over time
+
+
+TL_fisheries <- tapply (fisheries_wtrait$CatchAmount_t,
+                        list(fisheries_wtrait$Year,
+                             fisheries_wtrait$Diet,
+                             fisheries_wtrait$Region),
+                        sum, default = 0) 
+
+TL_fisheries<-melt (TL_fisheries)
+colnames(TL_fisheries) <- c("Year", "TrGroup", "Region", "value")
+# change region names
+
+TL_fisheries$Region <- recode_factor(TL_fisheries$Region, 
+                                     "Sul" = "South", 
+                                     "SE" = "Southeast",
+                                     "NE" = "Northeast", 
+                                     "Norte" = "North")
+
+# order diet according to TL
+TL_fisheries$TrGroup <- factor(TL_fisheries$TrGroup,
+                               levels = c("fc", "im", "is", "om", "hm", "hd"))
+
+## pot trnds over time
+trophic_level_trends <- ggplot (TL_fisheries, aes (x=Year, y=log(value),
+                                                   colour = TrGroup)) + 
+  facet_wrap(~Region,scales = "free")+
+  geom_line(size=1) + 
+  xlab ("Year") + 
+  ylab ("Sum catch (thousands of tonnes, log scale)") + 
+  theme_classic() + 
+  scale_colour_viridis_d(option = "viridis") + 
+  theme (strip.text = element_text(face="bold"),
+         strip.text.x = element_text(size = 10, color = "black", 
+                                     face = "bold"),
+         strip.background = element_rect(color="black", 
+                                         fill="gray60",
+                                         size=1.5, linetype="solid"
+         )) 
+
+pdf (here ("output", "TL_trends.pdf"),height=5,width=6)
+trophic_level_trends
+dev.off()
+
+
+## ======================================
+
+
+# trends for selected genera
+
+
+
+selected_fish_trend <- tapply (fisheries_wtrait$CatchAmount_t,
+                               list(fisheries_wtrait$Year,
+                                    #fisheries_wtrait$Diet_2012,
+                                    fisheries_wtrait$Region,
+                                    fisheries_wtrait$Genus_match),
+                               sum) 
+
+selected_fish_trend<-melt (selected_fish_trend)
+colnames(selected_fish_trend) <- c("Year",  "Region", "Genus_match","value")
+
+# plot
+sel_spp_trends <- ggplot (selected_fish_trend[which(selected_fish_trend$Genus_match %in% 
+                                                      c("Scarus", 
+                                                        "Sparisoma",
+                                                        "Balistes", 
+                                                        "Lutjanus",
+                                                        "Mycteroperca",
+                                                        "Epinephelus",
+                                                        "Ocyurus")),],
+                          
+                          
+                          aes (x=Year, y=log(value),
+                               colour = Genus_match),alpha=0.5) + 
+  facet_wrap(~Region,scales = "free")+
+  geom_line(size=1) + 
+  xlab ("Year") + 
+  ylab ("Sum catch (thousands of tonnes)") + 
+  theme_classic()  +
+  scale_colour_viridis_d(option ="viridis", begin=0.1,end=0.9)
+
+
+
+
+
+
+## --------------------
+# trends
+# species per region and year
+# + current
+# regional scale
+
+
+
+
+agg1<-aggregate(CatchAmount_t~Region+Genus_match+Year,sum,data=fisheries_wtrait)
+# change region names
+agg1$Region[which(agg1$Region == "Sul")] <- "South"
+agg1$Region[which(agg1$Region == "SE")] <- "Southeast"
+agg1$Region[which(agg1$Region == "NE")] <- "Northeast"
+agg1$Region[which(agg1$Region == "Norte")] <- "North"
+
+
+# plot
+trend_sel_sp_region <- ggplot(agg1[which(agg1$Genus_match %in% 
+                                           c("Scarus", 
+                                             "Sparisoma",
+                                             "Balistes",
+                                             "Mycteroperca",
+                                             "Epinephelus")),],
+                              aes (x=Year, y=sqrt(CatchAmount_t),colour = Genus_match))+
+  geom_point() + 
+  
+  facet_wrap(~Region,scales = "free")+
+  
+  poison_smooth(formula = y ~ s(x, bs = "cs",k=4)) + theme_classic() + 
+  scale_colour_viridis_d(option = "magma", begin=0.1,end=0.9, name = "Genus") + 
+  theme (strip.text = element_text(face="bold"),
+         strip.text.x = element_text(size = 10, color = "black", 
+                                     face = "bold"),
+         strip.background = element_rect(color="black", 
+                                         fill="gray60",
+                                         size=1.5, linetype="solid"
+         ))
+
+trend_sel_sp_region
+
+
+
+# lutjanids
+
+
+
+trend_sel_sp_region_lutjanus <- ggplot(agg1[which(agg1$Genus_match %in% 
+                                                    c("Lutjanus",
+                                                      "Ocyurus")),],
+                                       aes (x=Year, y=sqrt(CatchAmount_t),colour = Genus_match))+
+  geom_point() + 
+  facet_wrap(~Region,scales = "free")+
+  poison_smooth(formula = y ~ s(x, bs = "cs",k=4)) + theme_classic() + 
+  scale_colour_viridis_d(option = "magma", begin=0.1,end=0.5, name= "") + 
+  theme (strip.text = element_text(face="bold"),
+         strip.text.x = element_text(size = 10, color = "black", 
+                                     face = "bold"),
+         strip.background = element_rect(color="black", 
+                                         fill="gray60",
+                                         size=1.5, linetype="solid"
+         ))
+
+trend_sel_sp_region_lutjanus
+
+
+## cartilaginous fish
+
+trend_sel_sp_region_cart <- ggplot(agg1[which(agg1$Genus_match %in% 
+                                                c("Carcharhinus", "Ginglymostoma")),],
+                                   aes (x=Year, y=sqrt(CatchAmount_t),colour = Genus_match))+
+  geom_point() + 
+  facet_wrap(~Region,scales = "free")+
+  poison_smooth(formula = y ~ s(x, bs = "cs",k=4)) + theme_classic() + 
+  scale_colour_viridis_d(option = "magma", begin=0.1,end=0.6, name = "") + 
+  theme (strip.text = element_text(face="bold"),
+         strip.text.x = element_text(size = 10, color = "black", 
+                                     face = "bold"),
+         strip.background = element_rect(color="black", 
+                                         fill="gray60",
+                                         size=1.5, linetype="solid"
+         ))
+
+# save
+pdf (here ("output", "sel_spp_trends.pdf"),height=12,width=7)
+
+grid.arrange (trend_sel_sp_region+theme (axis.title.x = element_blank(), 
+                                         axis.text = element_text(size=7), 
+                                         legend.key.width = unit(0.1,"cm"),
+                                         legend.key.height = unit(0.5,"cm"),
+                                         legend.title = element_blank(),
+                                         legend.text = element_text(size=8)),
+              trend_sel_sp_region_lutjanus + theme (axis.title.x = element_blank(), 
+                                                    axis.text = element_text(size=7),
+                                                    legend.key.width = unit(0.1,"cm"),
+                                                    legend.key.height = unit(0.5,"cm"),
+                                                    legend.title = element_blank(),
+                                                    legend.text = element_text(size=8)),
+              trend_sel_sp_region_cart+theme (axis.title.x = element_blank(), 
+                                              axis.text = element_text(size=7),
+                                              legend.key.width = unit(0.1,"cm"),
+                                              legend.key.height = unit(0.5,"cm"),
+                                              legend.title = element_blank(),
+                                              legend.text = element_text(size=8)))
+
+dev.off()
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ------------------------------------------
 
 
 # not in this paper
@@ -1704,197 +1944,6 @@ dev.off()
 #
 #dev.off()
 #
-
-
-# ===========================
-# tRAIT COMSPOTION
-
-
-TL_fisheries <- tapply (fisheries_wtrait$CatchAmount_t,
-        list(fisheries_wtrait$Year,
-             fisheries_wtrait$Diet,
-             fisheries_wtrait$Region),
-        sum, default = 0) 
-
-TL_fisheries<-melt (TL_fisheries)
-colnames(TL_fisheries) <- c("Year", "TrGroup", "Region", "value")
-# change region names
-
-TL_fisheries$Region <- recode_factor(TL_fisheries$Region, 
-                                     "Sul" = "South", 
-                                     "SE" = "Southeast",
-                                     "NE" = "Northeast", 
-                                     "Norte" = "North")
-
-## pot trnds over time
-trophic_level_trends <- ggplot (TL_fisheries, aes (x=Year, y=log(value),
-                     colour = TrGroup)) + 
-  facet_wrap(~Region,scales = "free")+
-  geom_line(size=1) + 
-  xlab ("Year") + 
-  ylab ("Sum catch (thousands of tonnes, log scale)") + 
-  theme_classic() + 
-  scale_colour_viridis_d(option = "viridis") + 
-  theme (strip.text = element_text(face="bold"),
-         strip.text.x = element_text(size = 10, color = "black", 
-                                     face = "bold"),
-         strip.background = element_rect(color="black", 
-                                         fill="gray60",
-                                         size=1.5, linetype="solid"
-         )) 
-
-pdf (here ("output", "TL_trends.pdf"),height=5,width=6)
-trophic_level_trends
-dev.off()
-
-
-## ======================================
-# herbivorous over time
-
-
-
-selected_fish_trend <- tapply (fisheries_wtrait$CatchAmount_t,
-                  list(fisheries_wtrait$Year,
-                       #fisheries_wtrait$Diet_2012,
-                       fisheries_wtrait$Region,
-                       fisheries_wtrait$Genus_match),
-                  sum) 
-
-selected_fish_trend<-melt (selected_fish_trend)
-colnames(selected_fish_trend) <- c("Year",  "Region", "Genus_match","value")
-
-# plot
-sel_spp_trends <- ggplot (selected_fish_trend[which(selected_fish_trend$Genus_match %in% 
-                      c("Scarus", 
-                        "Sparisoma",
-                        "Balistes", 
-                        "Lutjanus",
-                        "Mycteroperca",
-                        "Epinephelus",
-                        "Ocyurus")),],
-        
-        
-        aes (x=Year, y=log(value),
-             colour = Genus_match),alpha=0.5) + 
-  facet_wrap(~Region,scales = "free")+
-  geom_line(size=1) + 
-  xlab ("Year") + 
-  ylab ("Sum catch (thousands of tonnes)") + 
-  theme_classic()  +
-  scale_colour_viridis_d(option ="viridis", begin=0.1,end=0.9)
-  
-
-
-
-
-
-## --------------------
-# trends
-# species per region and year
-# + current
-# regional scale
-
-
-
-
-agg1<-aggregate(CatchAmount_t~Region+Genus_match+Year,sum,data=fisheries_wtrait)
-# change region names
-agg1$Region[which(agg1$Region == "Sul")] <- "South"
-agg1$Region[which(agg1$Region == "SE")] <- "Southeast"
-agg1$Region[which(agg1$Region == "NE")] <- "Northeast"
-agg1$Region[which(agg1$Region == "Norte")] <- "North"
-
-
-# plot
-trend_sel_sp_region <- ggplot(agg1[which(agg1$Genus_match %in% 
-                    c("Scarus", 
-                      "Sparisoma",
-                     "Balistes",
-                     "Mycteroperca",
-                     "Epinephelus")),],
-       aes (x=Year, y=sqrt(CatchAmount_t),colour = Genus_match))+
-  geom_point() + 
- 
-  facet_wrap(~Region,scales = "free")+
-  
-  poison_smooth(formula = y ~ s(x, bs = "cs",k=4)) + theme_classic() + 
-  scale_colour_viridis_d(option = "magma", begin=0.1,end=0.9, name = "Genus") + 
-  theme (strip.text = element_text(face="bold"),
-         strip.text.x = element_text(size = 10, color = "black", 
-                                     face = "bold"),
-         strip.background = element_rect(color="black", 
-                                         fill="gray60",
-                                         size=1.5, linetype="solid"
-         ))
-  
-trend_sel_sp_region
-
-
-
-# lutjanids
-
-
-
-trend_sel_sp_region_lutjanus <- ggplot(agg1[which(agg1$Genus_match %in% 
-                                           c("Lutjanus",
-                                             "Ocyurus")),],
-                              aes (x=Year, y=sqrt(CatchAmount_t),colour = Genus_match))+
-  geom_point() + 
-  facet_wrap(~Region,scales = "free")+
-  poison_smooth(formula = y ~ s(x, bs = "cs",k=4)) + theme_classic() + 
-  scale_colour_viridis_d(option = "magma", begin=0.1,end=0.5, name= "") + 
-  theme (strip.text = element_text(face="bold"),
-         strip.text.x = element_text(size = 10, color = "black", 
-                                     face = "bold"),
-         strip.background = element_rect(color="black", 
-                                         fill="gray60",
-                                         size=1.5, linetype="solid"
-         ))
-
-trend_sel_sp_region_lutjanus
-
-
-## cartilaginous fish
-
-trend_sel_sp_region_cart <- ggplot(agg1[which(agg1$Genus_match %in% 
-                                           c("Carcharhinus", "Ginglymostoma")),],
-                              aes (x=Year, y=sqrt(CatchAmount_t),colour = Genus_match))+
-  geom_point() + 
-  facet_wrap(~Region,scales = "free")+
-  poison_smooth(formula = y ~ s(x, bs = "cs",k=4)) + theme_classic() + 
-  scale_colour_viridis_d(option = "magma", begin=0.1,end=0.6, name = "") + 
-  theme (strip.text = element_text(face="bold"),
-         strip.text.x = element_text(size = 10, color = "black", 
-                                     face = "bold"),
-         strip.background = element_rect(color="black", 
-                                         fill="gray60",
-                                         size=1.5, linetype="solid"
-         ))
-
-# save
-pdf (here ("output", "sel_spp_trends.pdf"),height=12,width=7)
-
-grid.arrange (trend_sel_sp_region+theme (axis.title.x = element_blank(), 
-                                         axis.text = element_text(size=7), 
-                                          legend.key.width = unit(0.1,"cm"),
-                                         legend.key.height = unit(0.5,"cm"),
-                                         legend.title = element_blank(),
-                                         legend.text = element_text(size=8)),
-              trend_sel_sp_region_lutjanus + theme (axis.title.x = element_blank(), 
-                                                    axis.text = element_text(size=7),
-                                                    legend.key.width = unit(0.1,"cm"),
-                                                    legend.key.height = unit(0.5,"cm"),
-                                                    legend.title = element_blank(),
-                                                    legend.text = element_text(size=8)),
-              trend_sel_sp_region_cart+theme (axis.title.x = element_blank(), 
-                                              axis.text = element_text(size=7),
-                                              legend.key.width = unit(0.1,"cm"),
-                                              legend.key.height = unit(0.5,"cm"),
-                                              legend.title = element_blank(),
-                                              legend.text = element_text(size=8)))
-
-dev.off()
-
 
 
 
