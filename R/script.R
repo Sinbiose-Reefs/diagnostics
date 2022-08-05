@@ -1927,15 +1927,15 @@ ordination_nut<-ggplot(data=pcoa_nut,
 # project genus names
 ordination_nut<-ordination_nut + 
   
-                    geom_text_repel(data = correlation_nut,
+                    geom_text(data = correlation_nut,
                                            aes (x=Axis.1*5,
                                                 y = Axis.2*5,
                                                 label = (nutrient)),
                                            size=5,fontface = "italic",
                                            colour="#5BB318",
                                            max.overlaps = 100)  
-
-ordination_nut + geom_segment(aes(x = 0, y = 0, 
+# arrows
+ordination_nut <- ordination_nut + geom_segment(aes(x = 0, y = 0, 
                                   xend = correlation_nut[1,1]*4, 
                                   yend = correlation_nut[1,2]*4),size = 1,
                               color="#2B7A0B",alpha=0.05,
@@ -1956,7 +1956,7 @@ ordination_nut + geom_segment(aes(x = 0, y = 0,
                color="#2B7A0B",alpha=0.05,
                arrow = arrow(length = unit(.35, "cm"))) + 
   geom_segment(aes(x = 0, y = 0, 
-                   xend = correlation_nut[5,1]*4, 
+                   xend = correlation_nut[5,2]*4, 
                    yend = correlation_nut[5,2]*4),size = 1,
                color="#2B7A0B",alpha=0.05,
                arrow = arrow(length = unit(.35, "cm"))) + 
@@ -1981,6 +1981,7 @@ composition2<-grid.arrange(ordination_nut,
                                     c (1,1,1,1,1),
                                     c (2,2,2,2,2),
                                     c (2,2,2,2,2)))
+
 
 
 dev.off()
