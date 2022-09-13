@@ -163,12 +163,16 @@ catch_year <- fisheries_wtrait %>%
   summarize(sum_catch=sum(CatchAmount_t),
   ) 
 
+
+
 # recode region
 catch_year$Region <- recode_factor(catch_year$Region,    
   "Norte" = "North",
           "NE" = "Northeastern", 
           "Sul" = "South",
           "SE" = "Southeast")
+
+
 
 # plot
 require(ggplot2)
@@ -192,6 +196,7 @@ catch_year_plot <- ggplot (catch_year, aes (x=Year,
 
   
 
+
 # overall trend
 overall_trend <- fisheries_wtrait %>%
   
@@ -201,6 +206,7 @@ overall_trend <- fisheries_wtrait %>%
   
   summarize(sum_catch=sum(CatchAmount_t),
   ) 
+
 
 # plot overall trend
 catch_overall_trend <- ggplot (overall_trend, aes (x=Year, 
@@ -218,6 +224,7 @@ catch_overall_trend <- ggplot (overall_trend, aes (x=Year,
                                          fill="gray60",
                                          size=1.5, linetype="solid"
          )) 
+
 
 
 # arrange plots
@@ -421,12 +428,14 @@ year_region_composition_filtered <- lapply (seq (1,length (year_composition_regi
             
 ))
 
+
 # melt
 year_region_composition_filtered <-lapply (year_region_composition_filtered, function (i) 
   
           do.call(rbind, i)
           
 )          
+
 # set names
 year_region_composition_filtered <- lapply (seq (1,length (year_region_composition_filtered)), function (i){
   
@@ -507,6 +516,7 @@ catch_year_region <- tapply (fisheries_wtrait$CatchAmount_t,
                       list(fisheries_wtrait$Region,
                            fisheries_wtrait$Year),
                       sum) 
+
 
 
 # ordination (projection of beta diversity )
@@ -1437,7 +1447,7 @@ plotA2 <- plotA+ geom_polygon(data=a_overall, aes (Axis.1,Axis.2),
 most_catched <- all_overall[order(all_overall$sum_catch, decreasing=T),]
 
 # plot the five most catched
-nsp_to_plot <- 10
+nsp_to_plot <- 100
 plotA2 <- plotA2 + geom_text_repel(data = most_catched[1:nsp_to_plot,], 
                                    aes (x=Axis.1, y=Axis.2, label=(sp)),
                                    size=4) 
