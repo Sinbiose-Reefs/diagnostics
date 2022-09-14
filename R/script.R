@@ -159,8 +159,9 @@ catch_year <- fisheries_wtrait %>%
   group_by(Year,Sector,Region) %>% 
 
   
-  
-  summarize(sum_catch=sum(CatchAmount_t),
+  summarize(sum_catch=sum(CatchAmount_t)
+            
+            
   ) 
 
 
@@ -244,14 +245,57 @@ grid.arrange (catch_overall_trend,
 dev.off()
 
 
+# ========================
+# species most matched per region
+
+
+sp_region <- fisheries_wtrait %>%
+  
+  group_by(Region, TaxonName) %>% 
+  
+  
+  summarize(sum_catch=sum(CatchAmount_t)
+            
+            
+  ) 
+
+# 1% of the year catch
+percentage_for_bycatch <- 0.01
+
+# total region
+total_region <- fisheries_wtrait %>%
+  
+  group_by(Region) %>% 
+  
+  
+  summarize(sum_catch=sum(CatchAmount_t)) %>%
+  mutate (bycatch_region = sum_catch*percentage_for_bycatch)
+              
+# match
+sp_region$bycatch <- total_region$bycatch_region [match (sp_region$Region, total_region$Region)]
+
+# difference
+sp_region <- sp_region %>% 
+  mutate (diff = sum_catch >= bycatch) %>%
+  filter (diff== T) %>% 
+  group_by (Region) 
+
+
+# total N spp per region
+sp_region %>%
+  tally()
+
+# composition per region
+sp_region$TaxonName [which (sp_region$Region == "Norte")]
+sp_region$TaxonName [which (sp_region$Region == "NE")]
+sp_region$TaxonName [which (sp_region$Region == "SE")]
+sp_region$TaxonName [which (sp_region$Region == "Sul")]
 
 
 
 # ========================
 # how fisheries changed over time in terms of spp composition?
 # filter reef fish
-
-
 
 
 
@@ -271,11 +315,13 @@ year_composition <- cast (fisheries_wtrait,
 
 
 
-# 5% of the year catch
+# 1% of the year catch
 percentage_for_bycatch <- 0.01
+
 
 # filter
 bycatch_composition <- rowSums(year_composition [,-1])*percentage_for_bycatch
+
 
 # filter
 year_composition_filtered <- lapply (seq (1,nrow (year_composition)), function (i)
