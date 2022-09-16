@@ -1550,12 +1550,12 @@ TL_fisheries$TrGroup <- factor(TL_fisheries$TrGroup,
                                levels = c("fc", "im", "is", "om", "hm", "hd"))
 
 ## pot trnds over time
-trophic_level_trends <- ggplot (TL_fisheries, aes (x=Year, y=log(value+1),
+trophic_level_trends <- ggplot (TL_fisheries, aes (x=Year, y=value,
                                                    colour = TrGroup)) + 
   facet_wrap(~Region,scales = "free")+
   geom_line(size=1) + 
   xlab ("Year") + 
-  ylab ("Sum catch (thousands of tonnes, log(x+1))") + 
+  ylab ("Sum catch (thousands of tonnes)") + 
   scale_colour_viridis_d(option = "viridis") + 
   theme (strip.text = element_text(face="bold"),
          strip.text.x = element_text(size = 10, color = "black", 
@@ -1566,7 +1566,7 @@ trophic_level_trends <- ggplot (TL_fisheries, aes (x=Year, y=log(value+1),
          )) 
 
 pdf (here ("output", "TL_trends.pdf"),height=6,width=6)
-trophic_level_trends
+trophic_level_trends+theme_classic()
 dev.off()
 
 
@@ -1696,26 +1696,39 @@ trend_sel_sp_region_cart <- ggplot(agg1[which(agg1$Genus_match %in%
          ))
 
 # save
-pdf (here ("output", "sel_spp_trends.pdf"),height=13,width=7)
+# scarus et al
+pdf (here ("output", "sel_spp_trends_scarus.pdf"),height=5,width=6)
 
-grid.arrange (trend_sel_sp_region+theme (axis.title.x = element_blank(), 
+trend_sel_sp_region+theme (axis.title.x = element_blank(), 
                                          axis.text = element_text(size=7), 
                                          legend.key.width = unit(0.1,"cm"),
                                          legend.key.height = unit(0.5,"cm"),
                                          legend.title = element_blank(),
-                                         legend.text = element_text(size=8)),
-              trend_sel_sp_region_lutjanus + theme (axis.title.x = element_blank(), 
+                                         legend.text = element_text(size=8))
+
+dev.off()              
+
+# lutjanus ocyurus
+pdf (here ("output", "sel_spp_trends_lutjanus.pdf"),height=5,width=6)
+
+trend_sel_sp_region_lutjanus + theme (axis.title.x = element_blank(), 
                                                     axis.text = element_text(size=7),
                                                     legend.key.width = unit(0.1,"cm"),
                                                     legend.key.height = unit(0.5,"cm"),
                                                     legend.title = element_blank(),
-                                                    legend.text = element_text(size=8)),
-              trend_sel_sp_region_cart+theme (axis.title.x = element_blank(), 
+                                                    legend.text = element_text(size=8))
+
+dev.off()
+
+# sharks
+pdf (here ("output", "sel_spp_trends_shark.pdf"),height=5,width=6)
+
+trend_sel_sp_region_cart+theme (axis.title.x = element_blank(), 
                                               axis.text = element_text(size=7),
                                               legend.key.width = unit(0.1,"cm"),
                                               legend.key.height = unit(0.5,"cm"),
                                               legend.title = element_blank(),
-                                              legend.text = element_text(size=8)))
+                                              legend.text = element_text(size=8))
 
 dev.off()
 
