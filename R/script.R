@@ -242,6 +242,7 @@ grid.arrange (catch_overall_trend,
                                      c(2,2,2,2)),
               left = "Sum of the Catch Amount (T)"
 )
+
 dev.off()
 
 
@@ -260,7 +261,7 @@ sp_region <- fisheries_wtrait %>%
   ) 
 
 # 1% of the year catch
-percentage_for_bycatch <- 0.01
+percentage_for_bycatch <-  0.01
 
 # total region
 total_region <- fisheries_wtrait %>%
@@ -315,8 +316,6 @@ year_composition <- cast (fisheries_wtrait,
 
 
 
-# 1% of the year catch
-percentage_for_bycatch <- 0.01
 
 
 # filter
@@ -330,6 +329,7 @@ year_composition_filtered <- lapply (seq (1,nrow (year_composition)), function (
               year_composition[i,-1]))
 
 )
+
 year_composition_filtered <- do.call(rbind, year_composition_filtered)
 rownames(year_composition_filtered) <- year_composition$Year
 colnames(year_composition_filtered) <- colnames(year_composition)[-1]
@@ -350,9 +350,9 @@ dist_composition <- vegdist (decostand(year_composition_filtered,'hell'),
 require(ape)
 pcoa_fish_year <- pcoa(dist_composition)
 # variance explained by the first and second axes
-Exp_axis1<-pcoa_fish_year$values$Eigenvalues[1]/sum(pcoa_fish_year$values$Eigenvalues)*100
-Exp_axis2<-pcoa_fish_year$values$Eigenvalues[2]/sum(pcoa_fish_year$values$Eigenvalues)*100
-
+(Exp_axis1<-pcoa_fish_year$values$Eigenvalues[1]/sum(pcoa_fish_year$values$Eigenvalues)*100)
+(Exp_axis2<-pcoa_fish_year$values$Eigenvalues[2]/sum(pcoa_fish_year$values$Eigenvalues)*100)
+Exp_axis1+Exp_axis2
 
 #pcoa_fish_year <- melt (pcoa_fish_year)
 pcoa_fish_year <- cbind (pcoa_fish_year$vectors,
@@ -456,7 +456,7 @@ year_composition_region <- lapply (unique(fisheries_wtrait$Region), function (i)
 
 
 
-# 5% of the year catch
+# year catch
 bycatch_region <- lapply (year_composition_region, function (i) 
   
         rowSums( i [,-1])*percentage_for_bycatch
@@ -543,7 +543,7 @@ comp_change <- bind_rows(pcoa_fish_year %>%
   geom_point() +
   facet_wrap(~ region, ncol = 5) +
   theme_classic() +
-  geom_smooth() +
+  geom_smooth(col = "turquoise4") +
   labs(x = "", y = "Change in composition\n(First PCoA Axis)") + 
   theme (legend.position = c(0.12,0.90),
          axis.title = element_text(size=15),
@@ -701,9 +701,9 @@ average_traits$Size_group <- ordered (average_traits$Size_group) # ordered
 
 
 # level water
-average_traits$Level_water [which(average_traits$Level_water == "bottom")] <- 1
+average_traits$Level_water [which(average_traits$Level_water == "bottom")] <- 3
 average_traits$Level_water [which(average_traits$Level_water == "low")] <- 2
-average_traits$Level_water [which(average_traits$Level_water == "high")] <- 3
+average_traits$Level_water [which(average_traits$Level_water == "high")] <- 1
 average_traits$Level_water <- ordered (average_traits$Level_water) # ordered
 
 
@@ -752,11 +752,12 @@ data_funct_trend <- melt (data_funct_trend,id.vars = c("year","beta")) # melt
 
 
 pdf (here ("output", "composition_funct.pdf"))
+
 ggplot (data_funct_trend, aes (x=beta, y = value)) +
   geom_point() + 
   facet_wrap(~variable, scale = "free_y") +
   geom_smooth(method = "gam",
-              formula = y ~ s(x, bs = "cs",k=4),col ="#5BB318") + 
+              formula = y ~ s(x, bs = "cs",k=4),col ="turquoise3") + 
   ylab ("Community Weighted Means of Trait Values") + 
   xlab ("First PCoA Axis") + 
   theme (strip.text.x = element_text(size = 10, color = "black", 
@@ -1087,7 +1088,7 @@ plot_size_depth<-ggplot (fish_year_df,
                               )) + 
   
   geom_smooth(method = "gam",
-              formula = y ~ s(x, bs = "cs",k=4),col ="#5BB318") + 
+              formula = y ~ s(x, bs = "cs",k=4),col ="turquoise3") + 
   facet_wrap (~variable,ncol=2,scales = "free")+
   
   geom_point() + 
@@ -1107,7 +1108,9 @@ plot_size_depth<-ggplot (fish_year_df,
 # save plot
 
 pdf (here ("output", "size_depth_catch_fish.pdf"),height=6,width=5)
+
 plot_size_depth
+
 dev.off()
 
 
@@ -1150,9 +1153,9 @@ average_traits_whole_region$Size_group [which(average_traits_whole_region$Size_g
 average_traits_whole_region$Size_group <- ordered (average_traits_whole_region$Size_group) # ordered
 
 # level water
-average_traits_whole_region$Level_water [which(average_traits_whole_region$Level_water == "bottom")] <- 1
+average_traits_whole_region$Level_water [which(average_traits_whole_region$Level_water == "bottom")] <- 3
 average_traits_whole_region$Level_water [which(average_traits_whole_region$Level_water == "low")] <- 2
-average_traits_whole_region$Level_water [which(average_traits_whole_region$Level_water == "high")] <- 3
+average_traits_whole_region$Level_water [which(average_traits_whole_region$Level_water == "high")] <- 1
 average_traits_whole_region$Level_water <- ordered (average_traits_whole_region$Level_water) # ordered
 
 # daily activity
@@ -1426,14 +1429,14 @@ plotB <- lapply (catched_fish_region, function (i)
                  alpha=0.6,
                  fill="gray",
                  colour = "black",
-                 size=1,
+                 size=0.5,
                  linetype = 2) + # complete space
     geom_polygon(data=i$catched_fish, aes (Axis.1,Axis.2),
                  alpha=0.3,
-                 fill="#5BB318",
-                 colour = "#2B7A0B",
+                 fill="turquoise3",
+                 colour = "turquoise4",
                  size=1,
-                 linetype = 3) 
+                 linetype = 1) 
   
 )
 
@@ -1472,7 +1475,7 @@ plotA <- ggplot(a, aes(Axis.1,Axis.2)) +
                alpha=0.6,
                fill="gray",
                colour = "black",
-               size=1,
+               size=0.5,
                linetype = 2) +
   geom_text(data = a, aes (x=Axis.1, y=Axis.2, label=(sp)),
             size=3)+ 
@@ -1480,10 +1483,10 @@ plotA <- ggplot(a, aes(Axis.1,Axis.2)) +
 
 plotA2 <- plotA+ geom_polygon(data=a_overall, aes (Axis.1,Axis.2),
                               alpha=0.3,
-                              fill="#5BB318",
-                              colour = "#2B7A0B",
+                              fill="turquoise3",
+                              colour = "turquoise4",
                               size=1,
-                              linetype = 3) +
+                              linetype = 1) +
   # point size
   geom_point(data = all_overall [is.na (all_overall$sum_catch) != T,], 
              aes (size=(sum_catch),alpha=0.3))+
@@ -1496,7 +1499,9 @@ most_catched <- all_overall[order(all_overall$sum_catch, decreasing=T),]
 nsp_to_plot <- 100
 plotA2 <- plotA2 + geom_text_repel(data = most_catched[1:nsp_to_plot,], 
                                    aes (x=Axis.1, y=Axis.2, label=(sp)),
-                                   size=4) 
+                                   size=4) +
+                                  xlab ("Axis 1 (38.44%)") + 
+                                  ylab ("Axis 2 (18.87%)")
 
 # save
 pdf (here ("output", "trait_space_fishing.pdf"),height=9,width=6)
@@ -1525,6 +1530,14 @@ dev.off()
 
 # --------------------------------
 # exploring trait space over time
+
+
+
+# change the percentage of bycatch to have all the data
+#percentage_for_bycatch<-0.01
+
+
+
 
 require(sp)
 
@@ -1589,8 +1602,8 @@ TS_time_df <- do.call (rbind, TS_time)
 
 # BR trend
 BR_trend_TS<- ggplot (TS_time_df, aes (x=year,y= ratioTS)) + 
-  geom_point() + 
-  geom_smooth() + 
+  geom_point(col="turquoise4") + 
+  geom_smooth(col="turquoise3") + 
   ylab ("Year trait space area / Complete trait space area") + 
   theme_classic()
 
@@ -1598,6 +1611,9 @@ BR_trend_TS<- ggplot (TS_time_df, aes (x=year,y= ratioTS)) +
 
 # ---------------------------------------------------------------
 # per region
+
+
+
 
 TS_time_region <- lapply (unique(fisheries_wtrait$Region), function (r) # each region
   
@@ -1663,6 +1679,7 @@ TS_time_region_df <- lapply (TS_time_region, function (r)
   
   do.call (rbind, r)
 )
+
 # melt the list once again  
 TS_time_region_df<- do.call(rbind, TS_time_region_df)
 # discreticing year
@@ -1673,8 +1690,8 @@ TS_time_region_df<-TS_time_region_df %>%
 # BR trend
 
 region_trend_TS<-ggplot (TS_time_region_df, aes (x=year,y= ratioTS)) + 
-  geom_point() + 
-  geom_smooth() + 
+  geom_point(col="turquoise4") + 
+  geom_smooth(col="turquoise3") + 
   ylab ("Year trait space area / Complete trait space area") + 
   theme_classic() + 
   facet_wrap(~region)
@@ -1823,7 +1840,7 @@ trend_sel_sp_region <- ggplot(agg1[which(agg1$Genus_match %in%
   facet_wrap(~Region,scales = "free")+
   
   poison_smooth(formula = y ~ s(x, bs = "cs",k=4)) + theme_classic() + 
-  scale_colour_viridis_d(option = "magma", begin=0.1,end=0.9, name = "Genus") + 
+  scale_colour_viridis_d(option = "viridis", begin=0,end=1, name = "Genus") + 
   theme (strip.text = element_text(face="bold"),
          strip.text.x = element_text(size = 10, color = "black", 
                                      face = "bold"),
@@ -1847,7 +1864,7 @@ trend_sel_sp_region_lutjanus <- ggplot(agg1[which(agg1$Genus_match %in%
   geom_point() + 
   facet_wrap(~Region,scales = "free")+
   poison_smooth(formula = y ~ s(x, bs = "cs",k=4)) + theme_classic() + 
-  scale_colour_viridis_d(option = "magma", begin=0.1,end=0.5, name= "") + 
+  scale_colour_viridis_d(option = "viridis", begin=0.1,end=0.7, name= "") + 
   theme (strip.text = element_text(face="bold"),
          strip.text.x = element_text(size = 10, color = "black", 
                                      face = "bold"),
@@ -1867,7 +1884,7 @@ trend_sel_sp_region_cart <- ggplot(agg1[which(agg1$Genus_match %in%
   geom_point() + 
   facet_wrap(~Region,scales = "free")+
   poison_smooth(formula = y ~ s(x, bs = "cs",k=4)) + theme_classic() + 
-  scale_colour_viridis_d(option = "magma", begin=0.1,end=0.6, name = "") + 
+  scale_colour_viridis_d(option = "viridis", begin=0,end=0.7, name = "") + 
   theme (strip.text = element_text(face="bold"),
          strip.text.x = element_text(size = 10, color = "black", 
                                      face = "bold"),
