@@ -1902,7 +1902,8 @@ trend_sel_sp_region+theme (axis.title.x = element_blank(),
                                          legend.key.width = unit(0.1,"cm"),
                                          legend.key.height = unit(0.5,"cm"),
                                          legend.title = element_blank(),
-                                         legend.text = element_text(size=8))
+                                         legend.text = element_text(size=8)) + 
+  ylab ("Catch amount (tonnes, squared-root)")
 
 dev.off()              
 
@@ -1914,7 +1915,8 @@ trend_sel_sp_region_lutjanus + theme (axis.title.x = element_blank(),
                                                     legend.key.width = unit(0.1,"cm"),
                                                     legend.key.height = unit(0.5,"cm"),
                                                     legend.title = element_blank(),
-                                                    legend.text = element_text(size=8))
+                                                    legend.text = element_text(size=8))+ 
+  ylab ("Catch amount (tonnes, squared-root)")
 
 dev.off()
 
@@ -1926,7 +1928,8 @@ trend_sel_sp_region_cart+theme (axis.title.x = element_blank(),
                                               legend.key.width = unit(0.1,"cm"),
                                               legend.key.height = unit(0.5,"cm"),
                                               legend.title = element_blank(),
-                                              legend.text = element_text(size=8))
+                                              legend.text = element_text(size=8))+ 
+  ylab ("Catch amount (tonnes, squared-root)")
 
 dev.off()
 
