@@ -94,25 +94,6 @@ fisheries$Genus_match <- genus[,1]
 
 
 
-## matching with nutrients (predictions from Hicks et al. 2019)
-nutrients <- read.csv (here ("data", "Species_Nutrient_Predictions.csv"))
-
-
-#  genus
-nutrients$Genus <- sapply(strsplit (nutrients$species, "_"), "[",1)
-
-
-
-# bind nutrient content to the trait dataset
-traits <- cbind (traits, 
-                 nutrients[match (traits$Genus,
-                                  
-                                   (nutrients$Genus)),
-                           grep("mu", colnames(nutrients))]) # mu is the averaged nutrient estimates
-
-
-
-
 # fisheries data (matching with Pinheiro et al. 2018)
 # reef fish genus
 table(unique(fisheries$Genus_match) %in% reef_fish$Genus )
@@ -489,6 +470,7 @@ year_region_composition_filtered <- lapply (seq (1,length (year_region_compositi
   colnames(year_region_composition_filtered[[i]]) <- colnames(year_composition_region[[i]])[-1]
   year_composition_region[[i]]
 })
+
 # remove genus without catches
 year_region_composition_filtered <- lapply (year_region_composition_filtered, function (i) 
   
@@ -582,14 +564,10 @@ ordination1_reg <- lapply (seq(1,length(dist_composition_pcoa)), function (i) {
           
           geom_text(aes(label=year),
                     size=2.5,vjust=-1) +
-          #geom_path(aess(group=year)) +# add the site labels
-          #scale_colour_manual(values=c("A" = "red", "B" = "blue")) +
           coord_equal() +
           theme_bw() +
           
-          theme(legend.position = "none",
-                axis.text = element_blank(),
-                axis.title = element_blank())
+          theme(legend.position = "none")
         
         
         # correlation of genus to the axes
@@ -767,6 +745,7 @@ ggplot (data_funct_trend, aes (x=beta, y = value)) +
                                          size=1.5, linetype="solid"
          ))
 dev.off()
+
 
 
 
