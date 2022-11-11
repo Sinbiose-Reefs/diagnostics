@@ -1174,8 +1174,34 @@ gower_matrix <- vegdist (std_traits_whole,
 pcoa_whole<-pcoa(gower_matrix,correction = "cailliez") # quasieuclid() transformation to make the gower matrix as euclidean. nf= number of axis 
 
 
+
+
+
+## ----------------------------------------------------- ##
+# Testing the Quality of the functional space based on the method 
+# of Maire et al. (2015) in GEB, i.e. how many axes do we need to keep to 
+# faithfully represent the original Gower's distances.
+# The function will test the quality of the space from 2 to n axes using 
+# dudi.pco(quasieuclid(gower_matrix), scannf=F, nf=10)
+## ------------------------------------------------------ ##
+source ("R/quality_funct_space_fromdist2.R")
+dev.set(dev.next())
+
+quality<-quality_funct_space_fromdist( gower_matrix,  nbdim=10,   
+                                       plot=here ("output", "quality_funct_space_I_fish.png")) 
+
+### the minimal value corresponds to the best space to use (min SD)
+axes_to_choose <- which(quality$meanSD == min(quality$meanSD)) 
+### calculate and show the percentage of inertia explained by the choosen axes
+(Inertia7<- (sum(pcoa_whole$values[1:axes_to_choose])) /(sum(pcoa_whole$values))) 
+
+
+
+
 #barplot(pco$eig) # barplot of eigenvalues for each axis 
-(Inertia2<-(pcoa_whole$values$Eigenvalues[1]+pcoa_whole$values$Eigenvalues[2]+pcoa_whole$values$Eigenvalues[3]) /(sum(pcoa_whole$values$Eigenvalues[which(pcoa_whole$values$Eigenvalues>0)]))) # percentage of inertia explained by the two first axes
+(Inertia2<-(pcoa_whole$values$Eigenvalues[1]+
+              pcoa_whole$values$Eigenvalues[2]+
+              pcoa_whole$values$Eigenvalues[3]) /(sum(pcoa_whole$values$Eigenvalues[which(pcoa_whole$values$Eigenvalues>0)]))) # percentage of inertia explained by the two first axes
 
 ## only the frst axis
 (Inertia.first <- (pcoa_whole$values$Eigenvalues[1]) /(sum(pcoa_whole$values$Eigenvalues[which(pcoa_whole$values$Eigenvalues>0)])))
@@ -1187,10 +1213,10 @@ Inertia.first+Inertia.scnd
 
 
 ## complete space
-all <- data.frame (pcoa_whole$vectors[,1:2],
+all <- data.frame (pcoa_whole$vectors[,1:axes_to_choose],
               ext = F,
               sp = rownames(average_traits_whole_region))
-a <- all [chull(all[,1:2], y = NULL),] # its convex hull
+a <- all [chull(all[,1:axes_to_choose], y = NULL),] # its convex hull
 
 # create directory to receive the figures
 dir.create(here ("output", "figs_animation"))
@@ -1236,7 +1262,7 @@ plots_year <- lapply (seq (min (fisheries_wtrait$Year), max(fisheries_wtrait$Yea
     
     
     #year convex hull
-    a_year <- all_year [chull(all_year[,1:2], y = NULL),] # its convex hull
+    a_year <- all_year [chull(all_year[,1:axes_to_choose], y = NULL),] # its convex hull
     
     
     
@@ -1911,6 +1937,9 @@ trend_sel_sp_region_cart+theme (axis.title.x = element_blank(),
   ylab ("Catch amount (tonnes, squared-root)")
 
 dev.off()
+
+
+
 
 
 
