@@ -610,7 +610,9 @@ ordination1_reg <- lapply (seq(1,length(dist_composition_pcoa)), function (i) {
                                label = (species)),
                           size=1.5,fontface = "italic",
                           colour = "#47B5FF",
-                          max.overlaps = 100) 
+                          max.overlaps = 100) +
+          xlim(-0.25, 0.25)+
+          ylim(-0.3,0.3)
         
           ordination1_reg
 
