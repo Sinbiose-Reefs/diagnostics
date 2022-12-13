@@ -25,7 +25,7 @@ fisheries$Sector [which(fisheries$Sector == "industrial (LS, C)")] <- "Industria
 
 # load data of Pinheiro et al. 2018 (BR reef fish)
 reef_fish <- read.csv (here ("data","brazilian-reef-fish-table-04-mar-18-website.xlsx - Database.csv"))
-reef_fish<-reef_fish[which(reef_fish$Relation == "RES"),] # REef fish  (RESident fish)
+reef_fish<-reef_fish[which(reef_fish$Relation == "RES"),] # REef fish  (RESident fish according to Pinheiro et al. 2018)
 
 # mistake on the database
 reef_fish$Genus [grep ("Ocyurus chrysurus", reef_fish$Species)] <- "Ocyurus"
@@ -42,11 +42,11 @@ traits <- read.csv (here ("data",
                     sep = ";")
 
 
-
+# genus first letter to up
 traits$Genus <- firstup(traits$Genus)  
 
 
-# ajusts  
+# ajusts in trait values  
 traits$Body_size <- as.numeric(gsub (",",".",traits$Body_size))
 traits$Trophic_level <- as.numeric(gsub (",",".",traits$Trophic_level))
 traits$Depth_range <- as.numeric(gsub (",",".",traits$Depth_range))
@@ -55,7 +55,7 @@ traits$Depth_min<-as.numeric(gsub (",",".",traits$Depth_min))
 
 # average depth
 traits$Depth_mean<- apply (cbind (traits$Depth_max,  
-                                  traits$Depth_min),1,mean,na.rm=T)
+                                  traits$Depth_min),1,mean,na.rm=T)  # row-wise average
 
 
 # aggregate data of QUimbayo et al. at the genus level
@@ -110,6 +110,17 @@ fisheries_wtrait <- cbind (fisheries_wtrait,
                            )
 
 
+
+# recode region
+fisheries_wtrait$Region <- recode_factor(fisheries_wtrait$Region,    
+                                         "Norte" = "North",
+                                         "NE" = "Northeastern", 
+                                         "Sul" = "South",
+                                         "SE" = "Southeast")
+
+
+
+
 # check some examples
 
 traits [grep("Haemulon", traits$Genus),]
@@ -130,10 +141,14 @@ unique(fisheries_wtrait [grep("om", fisheries_wtrait$Diet), "Genus"])
 
 
 unique(fisheries_wtrait [which (fisheries_wtrait$Year %in% seq (1970,1973) & 
-                                   fisheries_wtrait$Region == "Sul"),"TaxonName"])
+                                   fisheries_wtrait$Region == "South"),"TaxonName"])
 
 # ---------------------------
 # plotting
+
+
+
+
 # catch year
 catch_year <- fisheries_wtrait %>%
   
@@ -146,19 +161,10 @@ catch_year <- fisheries_wtrait %>%
   ) 
 
 
-
-# recode region
-catch_year$Region <- recode_factor(catch_year$Region,    
-  "Norte" = "North",
-          "NE" = "Northeastern", 
-          "Sul" = "South",
-          "SE" = "Southeast")
-
-
-
 # plot
 require(ggplot2)
 require(ggrepel)
+
 catch_year_plot <- ggplot (catch_year, aes (x=Year, 
                          y=sum_catch,
                          colour = Sector)) + 
@@ -184,10 +190,9 @@ overall_trend <- fisheries_wtrait %>%
   
   group_by(Year,Sector) %>% 
   
-  
-  
   summarize(sum_catch=sum(CatchAmount_t),
-  ) 
+  
+            ) 
 
 
 # plot overall trend
@@ -241,8 +246,10 @@ sp_region <- fisheries_wtrait %>%
             
   ) 
 
+
 # 1% of the year catch
 percentage_for_bycatch <-  0.01
+
 
 # total region
 total_region <- fisheries_wtrait %>%
@@ -250,11 +257,15 @@ total_region <- fisheries_wtrait %>%
   group_by(Region) %>% 
   
   
-  summarize(sum_catch=sum(CatchAmount_t)) %>%
-  mutate (bycatch_region = sum_catch*percentage_for_bycatch)
+  summarize(sum_catch=sum(CatchAmount_t)) %>% # summed catched per region
+  
+  
+  mutate (bycatch_region = sum_catch*percentage_for_bycatch) # region bycatch 
               
+
 # match
 sp_region$bycatch <- total_region$bycatch_region [match (sp_region$Region, total_region$Region)]
+
 
 # difference
 sp_region <- sp_region %>% 
@@ -268,10 +279,10 @@ sp_region %>%
   tally()
 
 # composition per region
-sp_region$TaxonName [which (sp_region$Region == "Norte")]
-sp_region$TaxonName [which (sp_region$Region == "NE")]
-sp_region$TaxonName [which (sp_region$Region == "SE")]
-sp_region$TaxonName [which (sp_region$Region == "Sul")]
+sp_region$TaxonName [which (sp_region$Region == "North")]
+sp_region$TaxonName [which (sp_region$Region == "Northeastern")]
+sp_region$TaxonName [which (sp_region$Region == "Southeast")]
+sp_region$TaxonName [which (sp_region$Region == "South")]
 
 
 
@@ -281,7 +292,7 @@ sp_region$TaxonName [which (sp_region$Region == "Sul")]
 
 
 
-# reshape
+# table of composition per year
 require(reshape)
 
 year_composition <- cast (fisheries_wtrait, 
@@ -324,7 +335,8 @@ year_composition_filtered <- year_composition_filtered[,which(colSums(year_compo
 #  hellinger transformed dataset
 require(vegan)
 dist_composition <- vegdist (decostand(year_composition_filtered,'hell'),
-                                method = "bray",na.rm=T)
+                                method = "bray",
+                             na.rm=T)
 
 
 # pcoa
@@ -335,9 +347,11 @@ pcoa_fish_year <- pcoa(dist_composition)
 (Exp_axis2<-pcoa_fish_year$values$Eigenvalues[2]/sum(pcoa_fish_year$values$Eigenvalues)*100)
 Exp_axis1+Exp_axis2
 
+
 #pcoa_fish_year <- melt (pcoa_fish_year)
 pcoa_fish_year <- cbind (pcoa_fish_year$vectors,
                          year = year_composition$Year)
+
 
 # dataframe with data
 pcoa_fish_year<-as.data.frame(pcoa_fish_year)
@@ -352,6 +366,11 @@ catch_year <- tapply (fisheries_wtrait$CatchAmount_t,
 # bind
 pcoa_fish_year$catch <- (catch_year) # point size (half size)
 
+# adjust year to plot
+pcoa_fish_year$year_plot<-ifelse (pcoa_fish_year$year %in% seq(1950,2020,5),
+                             pcoa_fish_year$year,
+                                         "")
+
 
 # ordination (projection of beta diversity )
 # help here
@@ -361,10 +380,11 @@ ordination1<-ggplot(data=pcoa_fish_year,
   geom_point(aes(colour=as.numeric(year),
                  size = catch),
              
-             shape=1)+
+             shape=1) +
+  
    geom_path(aes(colour=as.numeric(year)),alpha=0.5)+
 
-  geom_text(aes(label=year),
+  geom_text(aes(label=year_plot),
                 size=2.5,vjust=-1) +
   #geom_path(aess(group=year)) +# add the site labels
   #scale_colour_manual(values=c("A" = "red", "B" = "blue")) +
@@ -383,6 +403,7 @@ correlation <-data.frame( cor (decostand(year_composition_filtered,'hell'),
 rownames(correlation) <- colnames(year_composition_filtered)
 correlation$species <- rownames(correlation)
 
+
 # order
 
 correlation[order(correlation[,1],decreasing=T),][1:8,]
@@ -392,7 +413,7 @@ correlation[order(correlation[,2],decreasing=T),][1:8,]
 
 
 # project genus names
-ordination1<-ordination1 + geom_text_repel(data = correlation[order(correlation[,2],decreasing=T),][1:10,],
+ordination1 <- ordination1 + geom_text_repel(data = correlation[order(correlation[,2],decreasing=T),][1:10,],
                         aes (x=Axis.1*0.2,
                              y = Axis.2*0.2,
                              label = (species)),
@@ -417,9 +438,13 @@ ordination1<-ordination1 + geom_text_repel(data = correlation[order(correlation[
   ylab (paste ("Axis 2 (", round(Exp_axis2,2), "%)",sep=""))
 
 
+
+
 ## =============================================== 
-# change in composition per region
-# a pesca mudou ao longo do tempo?
+# change in composition per region over time
+
+
+
 
 year_composition_region <- lapply (unique(fisheries_wtrait$Region), function (i)
   
@@ -435,6 +460,8 @@ year_composition_region <- lapply (unique(fisheries_wtrait$Region), function (i)
   )
 )
 
+# naming
+names(year_composition_region) <- unique(fisheries_wtrait$Region)
 
 
 # year catch
@@ -443,6 +470,7 @@ bycatch_region <- lapply (year_composition_region, function (i)
         rowSums( i [,-1])*percentage_for_bycatch
         
 )
+
 
 # filter
 year_region_composition_filtered <- lapply (seq (1,length (year_composition_region)), function (i) 
@@ -471,12 +499,22 @@ year_region_composition_filtered <- lapply (seq (1,length (year_region_compositi
   year_composition_region[[i]]
 })
 
+
 # remove genus without catches
 year_region_composition_filtered <- lapply (year_region_composition_filtered, function (i) 
   
     i[,which(colSums(i)>0)]
     
 )
+
+
+names(year_region_composition_filtered) <- unique(fisheries_wtrait$Region)
+
+
+
+# myryctis
+
+range(year_region_composition_filtered[[2]]$Myrichthys)
 
 
 
@@ -504,22 +542,24 @@ dist_composition_pcoa <- lapply (year_composition_region, function (i){
   # dataframe with data
   pcoa_fish_year<-as.data.frame(pcoa_fish_year)
   
-  ;
+  ; # return
+  
   pcoa_fish_year
-})
+
+  })
 
 
 # composition per region
 comp_change <- bind_rows(pcoa_fish_year %>% 
                            bind_cols(region = "Brazil", Year = unique(fisheries_wtrait$Year)),
                           dist_composition_pcoa[[1]] %>% 
-                           bind_cols(region = "Norte", Year = unique(fisheries_wtrait$Year)),
+                           bind_cols(region = "North", Year = unique(fisheries_wtrait$Year)),
                          dist_composition_pcoa[[2]] %>% 
-                           bind_cols(region = "NE", Year = unique(fisheries_wtrait$Year)),
+                           bind_cols(region = "Northeast", Year = unique(fisheries_wtrait$Year)),
                          dist_composition_pcoa[[3]] %>% 
-                           bind_cols(region = "SE", Year = unique(fisheries_wtrait$Year)),
+                           bind_cols(region = "Southeast", Year = unique(fisheries_wtrait$Year)),
                          dist_composition_pcoa[[4]] %>% 
-                           bind_cols(region = "Sul", Year = unique(fisheries_wtrait$Year))) %>% 
+                           bind_cols(region = "South", Year = unique(fisheries_wtrait$Year))) %>% 
   data.frame() %>% dplyr::rename(change = Axis.1) %>% 
   ggplot(aes(x = Year, y = change)) +
   geom_point() +
@@ -554,6 +594,12 @@ catch_year_region <- tapply (fisheries_wtrait$CatchAmount_t,
 # one plot per region 
 ordination1_reg <- lapply (seq(1,length(dist_composition_pcoa)), function (i) {
         
+  
+        # adjust the year to plot 
+        dist_composition_pcoa[[i]]$year<-ifelse (dist_composition_pcoa[[i]]$year %in% seq(1950,2020,5),
+                dist_composition_pcoa[[i]]$year,
+                "")
+  
         ordination1_reg<-ggplot(data=dist_composition_pcoa[[i]],
                             aes(x=Axis.1,y=Axis.2)) + 
           geom_point(aes(colour=as.numeric(year),
@@ -564,6 +610,7 @@ ordination1_reg <- lapply (seq(1,length(dist_composition_pcoa)), function (i) {
           
           geom_text(aes(label=year),
                     size=2.5,vjust=-1) +
+          ggtitle (names(year_composition_region)[[i]])+
           coord_equal() +
           theme_bw() +
           
@@ -594,25 +641,25 @@ ordination1_reg <- lapply (seq(1,length(dist_composition_pcoa)), function (i) {
                                                    aes (x=Axis.1*0.2,
                                                         y = Axis.2*0.2,
                                                         label = (species)),
-                                                   size=1.5,fontface = "italic",
+                                                   size=2,fontface = "italic",
                                                    colour="#1363DF",
                                                    max.overlaps = 100) +
           geom_text_repel(data = correlation[order(correlation[,1],decreasing=F),][1:5,],
                           aes (x=Axis.1*0.2,
                                y = Axis.2*0.2,
                                label = (species)),
-                          size=1.5,fontface = "italic",
+                          size=2,fontface = "italic",
                           colour = "#06283D",
                           max.overlaps = 100) + 
           geom_text_repel(data = correlation[order(correlation[,1],decreasing=T),][1:5,],
                           aes (x=Axis.1*0.22,
                                y = Axis.2*0.22,
                                label = (species)),
-                          size=1.5,fontface = "italic",
+                          size=2,fontface = "italic",
                           colour = "#47B5FF",
                           max.overlaps = 100) +
-          xlim(-0.25, 0.25)+
-          ylim(-0.3,0.3)
+          xlim(-0.45, 0.45)+
+          ylim(-0.4,0.4)
         
           ordination1_reg
 
@@ -621,25 +668,34 @@ ordination1_reg <- lapply (seq(1,length(dist_composition_pcoa)), function (i) {
 
 
 # arrange plots
-pdf (here ("output", "fisheries_composition.pdf"),height=10,width=10)
+pdf (here ("output", "fisheries_composition.pdf"),height=7,width=7)
 
 compostion1<-grid.arrange(
                  ordination1,
                  comp_change,
-                 ordination1_reg[[1]],
-                 ordination1_reg[[2]],
-                 ordination1_reg[[3]],
-                 ordination1_reg[[4]],
-             ncol=8,nrow=6,
+                 ncol=8,nrow=4,
              layout_matrix = rbind (c (1,1,1,1,1,1,1,1),
                                     c (1,1,1,1,1,1,1,1),
                                     c (2,2,2,2,2,2,2,2),
-                                    c (2,2,2,2,2,2,2,2),
-                                    c (3,3,4,4,5,5,6,6),
-                                    c (3,3,4,4,5,5,6,6)))
+                                    c (2,2,2,2,2,2,2,2)))
 
 
 dev.off()
+
+# composition per region
+
+pdf (here ("output", "fisheries_composition_region.pdf"),height=8,width=8)
+
+grid.arrange(
+  ordination1_reg[[2]], 
+  ordination1_reg[[1]], 
+  ordination1_reg[[3]],
+  ordination1_reg[[4]],
+  ncol=2
+)
+
+dev.off()
+
 
 
 # ----------------------------------------------------------------
