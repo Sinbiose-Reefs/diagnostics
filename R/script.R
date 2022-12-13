@@ -460,8 +460,10 @@ year_composition_region <- lapply (unique(fisheries_wtrait$Region), function (i)
   )
 )
 
+
 # naming
 names(year_composition_region) <- unique(fisheries_wtrait$Region)
+
 
 
 # year catch
@@ -473,9 +475,9 @@ bycatch_region <- lapply (year_composition_region, function (i)
 
 
 # filter
-year_region_composition_filtered <- lapply (seq (1,length (year_composition_region)), function (i) 
+year_region_composition_filtered <- lapply (seq (1,length (year_composition_region)), function (i)  # each region
   
-        lapply (seq (1,nrow (year_composition_region[[i]])), function (k)
+        lapply (seq (1,nrow (year_composition_region[[i]])), function (k) # each year
   
                 unlist(ifelse (year_composition_region[[i]][k,-1] < bycatch_region[[i]][k], 
                                0,
@@ -496,6 +498,7 @@ year_region_composition_filtered <- lapply (seq (1,length (year_region_compositi
   
   rownames(year_region_composition_filtered[[i]]) <- year_composition$Year
   colnames(year_region_composition_filtered[[i]]) <- colnames(year_composition_region[[i]])[-1]
+  ; # return
   year_composition_region[[i]]
 })
 
@@ -515,12 +518,18 @@ names(year_region_composition_filtered) <- unique(fisheries_wtrait$Region)
 # myryctis
 
 range(year_region_composition_filtered[[2]]$Myrichthys)
-
+# lapply (year_region_composition_filtered,dim)
 
 
 # vegan beta diversity
 library(tidyverse)
 require(vegan)
+
+
+# bycatch not removed 
+
+# "year_region_composition_filtered" is the object in which I removed bycatch 
+
 dist_composition_pcoa <- lapply (year_composition_region, function (i){
   
   

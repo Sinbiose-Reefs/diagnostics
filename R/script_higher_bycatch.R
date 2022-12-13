@@ -244,7 +244,7 @@ sp_region <- fisheries_wtrait %>%
 
 
 # 5% of the year catch
-percentage_for_bycatch <-  0.1
+percentage_for_bycatch <-  0.05
 
 
 # total region
@@ -469,11 +469,11 @@ bycatch_region <- lapply (year_composition_region, function (i)
 
 
 # filter
-year_region_composition_filtered <- lapply (seq (1,length (year_composition_region)), function (i) 
+year_region_composition_filtered <- lapply (seq (1,length (year_composition_region)), function (i) # for each region
   
-        lapply (seq (1,nrow (year_composition_region[[i]])), function (k)
+        lapply (seq (1,nrow (year_composition_region[[i]])), function (k) # for each year
   
-                unlist(ifelse (year_composition_region[[i]][k,-1] < bycatch_region[[i]][k], 
+                unlist(ifelse (year_composition_region[[i]][k,-1] < bycatch_region[[i]][k],  # check amount higher than bycatch at 5%
                                0,
                                year_composition_region[[i]][k,-1]))
             
@@ -518,7 +518,7 @@ range(year_region_composition_filtered[[2]]$Myrichthys)
 # vegan beta diversity
 library(tidyverse)
 require(vegan)
-dist_composition_pcoa <- lapply (year_composition_region, function (i){
+dist_composition_pcoa <- lapply (year_region_composition_filtered, function (i){
   
   
   dist_composition <- vegdist (decostand(i,'hell'),
