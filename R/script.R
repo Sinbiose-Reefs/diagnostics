@@ -810,7 +810,10 @@ ggplot (data_funct_trend, aes (x=beta, y = value)) +
          strip.background = element_rect(color="black", 
                                          fill="gray60",
                                          size=1.5, linetype="solid"
-         ))
+         )) + 
+  geom_text_repel(data = data_funct_trend[which(data_funct_trend$year %in% 
+                                              seq(1950,2020,10)),],
+                  aes (label = year),size=3)
 dev.off()
 
 
@@ -1147,7 +1150,10 @@ plot_size_depth<-ggplot (fish_year_df,
          strip.background = element_rect(color="black", 
                                          fill="gray60",
                                          size=1.5, linetype="solid"
-         )) 
+         ))+
+  geom_text_repel(data = fish_year_df[which(fish_year_df$year %in% 
+                                              seq(1950,2020,10)),],
+                  aes (label = year),size=3)
   
   
 
