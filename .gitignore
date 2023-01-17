@@ -3,3 +3,8 @@
 .RData
 .Ruserdata
 output/figs_animation
+output/output_higher_bycatch
+output/output_no_hellinger
+R/function_poncho.R
+R/script_higher_bycatch.R
+R/script_without_hell.R

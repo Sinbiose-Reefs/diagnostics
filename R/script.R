@@ -5,10 +5,9 @@
 # Linda Eggertsen et al.
 
 
-# load packages
-require(here)
-require(openxlsx)
+# load functions and packages
 source ("R/functions.R")
+source ("R/packages.R")
 
 # create directory to host the results
 dir.create("output")
@@ -22,7 +21,6 @@ fisheries$Sector [which(fisheries$Sector == "industrial (LS, C)")] <- "Industria
 
 
 
-
 # load data of Pinheiro et al. 2018 (BR reef fish)
 reef_fish <- read.csv (here ("data","brazilian-reef-fish-table-04-mar-18-website.xlsx - Database.csv"))
 reef_fish<-reef_fish[which(reef_fish$Relation == "RES"),] # REef fish  (RESident fish according to Pinheiro et al. 2018)
@@ -31,11 +29,7 @@ reef_fish<-reef_fish[which(reef_fish$Relation == "RES"),] # REef fish  (RESident
 reef_fish$Genus [grep ("Ocyurus chrysurus", reef_fish$Species)] <- "Ocyurus"
 
 
-# trait data (GASPAR database)
-#traits <- read.xlsx (here ("data", "GASPAR_Data-1.xlsx"),
-#                     sheet = 3)
-
-# trait data (QUimbayo database)
+# trait data (Quimbayo et al. trait database)
 
 traits <- read.csv (here ("data", 
                           "Atributos_especies_Atlantico_&_Pacifico_Oriental_2020_04_28.csv"),
@@ -59,8 +53,6 @@ traits$Depth_mean<- apply (cbind (traits$Depth_max,
 
 
 # aggregate data of QUimbayo et al. at the genus level
-require(dplyr)
-
 traits <- traits %>% 
   
   group_by(Genus) %>% 
@@ -84,7 +76,6 @@ traits <- traits %>%
 
 
 
-
 # fisheries ~year
 # genus
 genus <- strsplit(fisheries$TaxonName," ")
@@ -92,13 +83,10 @@ genus <- do.call(rbind, genus)
 fisheries$Genus_match <- genus[,1]
 
 
-
-
 # fisheries data (matching with Pinheiro et al. 2018)
 # reef fish genus
 table(unique(fisheries$Genus_match) %in% reef_fish$Genus )
 fisheries_wtrait<-fisheries[which(fisheries$Genus_match %in% reef_fish$Genus),]
-
 
 
 
@@ -110,15 +98,12 @@ fisheries_wtrait <- cbind (fisheries_wtrait,
                            )
 
 
-
 # recode region
 fisheries_wtrait$Region <- recode_factor(fisheries_wtrait$Region,    
                                          "Norte" = "North",
                                          "NE" = "Northeastern", 
                                          "Sul" = "South",
                                          "SE" = "Southeast")
-
-
 
 
 # check some examples
@@ -134,7 +119,6 @@ unique(fisheries_wtrait [grep("om", fisheries_wtrait$Diet), "Genus"])
 
 
 
-
 # equal column names (remove one)
 #table(fisheries_wtrait[,25] == fisheries_wtrait[,117])
 #fisheries_wtrait<- fisheries_wtrait[,-117]
@@ -145,8 +129,6 @@ unique(fisheries_wtrait [which (fisheries_wtrait$Year %in% seq (1970,1973) &
 
 # ---------------------------
 # plotting
-
-
 
 
 # catch year
@@ -162,8 +144,6 @@ catch_year <- fisheries_wtrait %>%
 
 
 # plot
-require(ggplot2)
-require(ggrepel)
 
 catch_year_plot <- ggplot (catch_year, aes (x=Year, 
                          y=sum_catch,
@@ -183,7 +163,6 @@ catch_year_plot <- ggplot (catch_year, aes (x=Year,
          ))
 
   
-
 
 # overall trend
 overall_trend <- fisheries_wtrait %>%
@@ -215,7 +194,6 @@ catch_overall_trend <- ggplot (overall_trend, aes (x=Year,
 
 
 # arrange plots
-require(gridExtra)
 
 pdf (here ("output", "catch_year_plot.pdf"),height=6,width=6)
 
@@ -293,7 +271,6 @@ sp_region$TaxonName [which (sp_region$Region == "South")]
 
 
 # table of composition per year
-require(reshape)
 
 year_composition <- cast (fisheries_wtrait, 
                           
@@ -305,8 +282,6 @@ year_composition <- cast (fisheries_wtrait,
                         
                         drop = F
         )
-
-
 
 
 
@@ -333,14 +308,12 @@ year_composition_filtered <- year_composition_filtered[,which(colSums(year_compo
 
 # vegan:: beta diversity between year
 #  hellinger transformed dataset
-require(vegan)
 dist_composition <- vegdist (decostand(year_composition_filtered,'hell'),
                                 method = "bray",
                              na.rm=T)
 
 
 # pcoa
-require(ape)
 pcoa_fish_year <- pcoa(dist_composition)
 # variance explained by the first and second axes
 (Exp_axis1<-pcoa_fish_year$values$Eigenvalues[1]/sum(pcoa_fish_year$values$Eigenvalues)*100)
@@ -373,8 +346,7 @@ pcoa_fish_year$year_plot<-ifelse (pcoa_fish_year$year %in% seq(1950,2020,5),
 
 
 # ordination (projection of beta diversity )
-# help here
-# https://ggplot2.tidyverse.org/reference/geom_path.html
+# help here : https://ggplot2.tidyverse.org/reference/geom_path.html
 ordination1<-ggplot(data=pcoa_fish_year,
        aes(x=Axis.1,y=Axis.2)) + 
   geom_point(aes(colour=as.numeric(year),
@@ -411,7 +383,6 @@ correlation[order(correlation[,1],decreasing=F),][1:8,]
 correlation[order(correlation[,2],decreasing=T),][1:8,]
 
 
-
 # project genus names
 ordination1 <- ordination1 + geom_text_repel(data = correlation[order(correlation[,2],decreasing=T),][1:10,],
                         aes (x=Axis.1*0.2,
@@ -439,10 +410,8 @@ ordination1 <- ordination1 + geom_text_repel(data = correlation[order(correlatio
 
 
 
-
 ## =============================================== 
 # change in composition per region over time
-
 
 
 
@@ -520,14 +489,8 @@ names(year_region_composition_filtered) <- unique(fisheries_wtrait$Region)
 range(year_region_composition_filtered[[2]]$Myrichthys)
 # lapply (year_region_composition_filtered,dim)
 
-
-# vegan beta diversity
-library(tidyverse)
-require(vegan)
-
-
+#  beta diversity
 # bycatch not removed 
-
 # "year_region_composition_filtered" is the object in which I removed bycatch 
 
 dist_composition_pcoa <- lapply (year_composition_region, function (i){
@@ -597,8 +560,7 @@ catch_year_region <- tapply (fisheries_wtrait$CatchAmount_t,
 
 
 # ordination (projection of beta diversity )
-# help here
-# https://ggplot2.tidyverse.org/reference/geom_path.html
+# help here : https://ggplot2.tidyverse.org/reference/geom_path.html
 
 # one plot per region 
 ordination1_reg <- lapply (seq(1,length(dist_composition_pcoa)), function (i) {
@@ -625,7 +587,6 @@ ordination1_reg <- lapply (seq(1,length(dist_composition_pcoa)), function (i) {
           
           theme(legend.position = "none")
         
-        
         # correlation of genus to the axes
         
         correlation <-data.frame( cor (decostand(year_region_composition_filtered[[i]][,-1],'hell'),
@@ -640,8 +601,6 @@ ordination1_reg <- lapply (seq(1,length(dist_composition_pcoa)), function (i) {
         correlation[order(correlation[,1],decreasing=T),][1:8,]
         correlation[order(correlation[,1],decreasing=F),][1:8,]
         correlation[order(correlation[,2],decreasing=T),][1:8,]
-        
-        
         
         # project genus names
         ordination1_reg<-ordination1_reg + 
@@ -767,9 +726,6 @@ average_traits<- average_traits[,-1]
 
 
 # functional composition  
-require(SYNCSA)
-
-
 # organize data
 organized_data <- organize.syncsa(
   
@@ -795,8 +751,8 @@ data_funct_trend <- data.frame (funct_comp$matrix.T,
 
 data_funct_trend <- melt (data_funct_trend,id.vars = c("year","beta")) # melt
 
-
-pdf (here ("output", "composition_funct.pdf"))
+# save plot
+pdf (here ("output", "composition_funct"))
 
 ggplot (data_funct_trend, aes (x=beta, y = value)) +
   geom_point() + 
@@ -816,225 +772,6 @@ ggplot (data_funct_trend, aes (x=beta, y = value)) +
                   aes (label = year),size=3)
 dev.off()
 
-
-
-
-## composition
-## vegan:: beta diversity between year
-##  hellinger transformed dataset
-#require(vegan)
-#dist_funct_composition <- vegdist (funct_comp$matrix.T,
-#                                  method = "euclidean",na.rm=T)
-#
-#
-#
-## pcoa
-#require(ape)
-#pcoa_fish_year_func <- pcoa(dist_funct_composition)
-## variance explained by the first and second axes
-#(Exp_axis1_func<-pcoa_fish_year_func$values$Eigenvalues[1]/sum(pcoa_fish_year_func$values$Eigenvalues)*100)
-#(Exp_axis2_func<-pcoa_fish_year_func$values$Eigenvalues[2]/sum(pcoa_fish_year_func$values$Eigenvalues)*100)
-#
-#
-##pcoa_fish_year <- melt (pcoa_fish_year)
-#pcoa_fish_year_func <- cbind (pcoa_fish_year_func$vectors,
-#                         year = as.numeric(rownames(organized_data$community)))
-#
-## dataframe with data
-#pcoa_fish_year_func<-as.data.frame(pcoa_fish_year_func)
-#
-#
-## point size (catch per year)
-#
-#catch_year <- tapply (fisheries_wtrait$CatchAmount_t,
-#                      list(fisheries_wtrait$Year),
-#                      sum) 
-## bind
-#pcoa_fish_year_func$catch <- (catch_year) # point size (half size)
-#
-## ordination (projection of beta diversity )
-## help here
-## https://ggplot2.tidyverse.org/reference/geom_path.html
-#ordination1_func <- ggplot(data=pcoa_fish_year_func,
-#                    aes(x=Axis.1,y=Axis.2)) + 
-#  
-#  geom_point(aes(colour=as.numeric(year),
-#                 size = catch),
-#                
-#               shape=1) + # add the point markers
-#  geom_path(aes(colour=as.numeric(year)),alpha=0.5)+
-#  
-#  geom_text(aes(label=year),
-#            size=2.5,vjust=-1) +
-#  #geom_path(aess(group=year)) +# add the site labels
-#  #scale_colour_manual(values=c("A" = "red", "B" = "blue")) +
-#  coord_equal() +
-#  theme_bw() +
-#  theme(legend.position = "none")
-#
-#
-#ordination1_func
-#
-## correlation of genus to the axes
-#correlation_func <-data.frame( cor (funct_comp$matrix.T,
-#                               pcoa_fish_year_func[,1:2],
-#                               method = "pearson"))
-#correlation_func$trait <- rownames(correlation_func)
-#
-## order
-#
-#correlation_func[order(correlation_func[,1],decreasing=T),]
-#correlation_func[order(correlation_func[,1],decreasing=F),]
-#correlation_func[order(correlation_func[,2],decreasing=T),]
-#
-#
-#
-## project genus names
-#ordination1_func<-ordination1_func + 
-#  
-#  geom_text_repel(data = correlation_func[order(correlation_func[,2],
-#                                                decreasing=T),],
-#                                           aes (x=Axis.1*0.02,
-#                                                y = Axis.2*0.02,
-#                                                label = (trait)),
-#                                           size=3,fontface = "italic",
-#                                           colour="#1363DF",
-#                                           max.overlaps = 100) + 
-#  xlab (paste ("Axis 1 (", round(Exp_axis1_func,2), "%)",sep="")) +
-#  ylab (paste ("Axis 2 (", round(Exp_axis2_func,2), "%)",sep=""))
-#
-#
-#
-### =============================================== 
-## change in composition per region
-## a pesca mudou ao longo do tempo?
-#
-#func_composition_region <- lapply (unique(fisheries_wtrait$Region), function (i){
-#  
-#  # trait composition
-#        
-#  average_traits <- fisheries_wtrait[which(fisheries_wtrait$Region == i),] %>% 
-#          
-#          
-#          group_by(Genus_match) %>% 
-#          
-#          summarise (Body_size = mean (Body_size,na.rm=T),  
-#                     Trophic_level = mean (Trophic_level,na.rm=T), 
-#                     Depth_range = mean (Depth_range,na.rm=T), 
-#                     Diel_activity = getmode (Diel_activity), 
-#                     Size_group = getmode (Size_group), 
-#                     Level_water = getmode (Level_water))  %>%
-#          
-#          
-#          select (Genus_match, Body_size, Trophic_level, Depth_range, 
-#                  Diel_activity, Size_group, Level_water)  
-#        
-#        # transform categorical into ranking traits
-#        # group size
-#        average_traits$Size_group [which(average_traits$Size_group == "sol")] <- 1
-#        average_traits$Size_group [which(average_traits$Size_group == "pair")] <- 2
-#        average_traits$Size_group [which(average_traits$Size_group == "smallg")] <- 3
-#        average_traits$Size_group [which(average_traits$Size_group == "medg")] <- 4
-#        average_traits$Size_group [which(average_traits$Size_group == "largeg")] <- 5
-#        average_traits$Size_group <- ordered (average_traits$Size_group) # ordered
-#        
-#        # level water
-#        average_traits$Level_water [which(average_traits$Level_water == "bottom")] <- 1
-#        average_traits$Level_water [which(average_traits$Level_water == "low")] <- 2
-#        average_traits$Level_water [which(average_traits$Level_water == "high")] <- 3
-#        average_traits$Level_water <- ordered (average_traits$Level_water) # ordered
-#        
-#        # daily activity
-#        average_traits$Diel_activity <- ifelse (average_traits$Diel_activity %in% c("night", "both"),
-#                                                1,0)
-#        average_traits<- data.frame(average_traits)
-#        rownames (average_traits) <- average_traits$Genus_match
-#        average_traits<- average_traits[,-1]
-#        
-#        # taxonomic composition per region (create here)
-#        year_composition_region <- cast (fisheries_wtrait[which(fisheries_wtrait$Region == i),], 
-#                
-#                formula = Year ~ Genus_match, # Genus
-#                
-#                value = "CatchAmount_t",
-#                fun.aggregate = sum
-#          
-#        )
-#        
-#        
-#        # functional composition  
-#        # organize data
-#        organized_data <- organize.syncsa(
-#          
-#          decostand(year_composition_region,'hell'),
-#          average_traits[,-which(colnames(average_traits) == "Diel_activity")])
-#        
-#        # functional composition
-#        funct_comp <- matrix.t(organized_data$community, 
-#                               organized_data$traits, 
-#                               scale = TRUE, 
-#                               ranks = TRUE, 
-#                               notification = TRUE)
-#        
-#        # composition
-#        # vegan:: beta diversity between year
-#        #  hellinger transformed dataset
-#        require(vegan)
-#        dist_funct_composition <- vegdist (funct_comp$matrix.T,
-#                                           method = "euclidean",na.rm=T)
-#        
-#        
-#        
-#        # pcoa
-#        pcoa_fish_year_func <- pcoa(dist_funct_composition)
-#        pcoa_fish_year_func
-#        
-#})
-#
-#
-#
-## composition per region
-#comp_change_func <- bind_rows(pcoa_fish_year_func %>% 
-#                           bind_cols(region = "Brazil", Year = unique(fisheries_wtrait$Year)),
-#                           func_composition_region[[1]]$vectors %>% 
-#                           bind_cols(region = "Norte", Year = unique(fisheries_wtrait$Year)),
-#                           func_composition_region[[2]]$vectors %>% 
-#                           bind_cols(region = "NE", Year = unique(fisheries_wtrait$Year)),
-#                           func_composition_region[[3]]$vectors %>% 
-#                           bind_cols(region = "SE", Year = unique(fisheries_wtrait$Year)),
-#                           func_composition_region[[4]]$vectors %>% 
-#                           bind_cols(region = "Sul", Year = unique(fisheries_wtrait$Year))) %>% 
-#  data.frame() %>% dplyr::rename(change = Axis.1) %>% 
-#  ggplot(aes(x = Year, y = change)) +
-#  geom_point() +
-#  facet_wrap(~ region, ncol = 5) +
-#  theme_classic() +
-#  geom_smooth() +
-#  labs(x = "", y = "Change in catch\n functional composition (Beta functional)")+
-#  theme (legend.position = c(0.12,0.90),
-#         axis.title = element_text(size=15),
-#         strip.text.x = element_text(size = 14, color = "black", 
-#                                     face = "bold"),
-#         strip.background = element_rect(color="black", 
-#                                         fill="gray60",
-#                                         size=1.5, linetype="solid"
-#         )) 
-#
-#
-## arrange plots
-#pdf (here ("output", "fisheries_functional_composition.pdf"),height=6,width=7)
-#compostion1_func<-grid.arrange(ordination1_func,
-#                          comp_change_func,
-#                          ncol=5,nrow=6,
-#                          layout_matrix = rbind (c (1,1,1,1,1),
-#                                                 c (1,1,1,1,1),
-#                                                 c (1,1,1,1,1),
-#                                                 c (1,1,1,1,1),
-#                                                 c (2,2,2,2,2),
-#                                                 c (2,2,2,2,2)))
-#
-#
-#dev.off()
 
 
 
@@ -1319,7 +1056,7 @@ plots_year <- lapply (seq (min (fisheries_wtrait$Year), max(fisheries_wtrait$Yea
       ) 
     
     
-    # 5% threshold to consider bycatch
+    #  bycatch
     bycatch_year <-sum(catch_year_genus$sum_catch,na.rm=T)*percentage_for_bycatch
     catch_year_genus<- catch_year_genus[which(catch_year_genus$sum_catch >bycatch_year),]
     
@@ -1352,7 +1089,7 @@ plots_year <- lapply (seq (min (fisheries_wtrait$Year), max(fisheries_wtrait$Yea
                    size=1,
                    linetype = 2)+ 
       theme_bw() +
-      ylim (c(-0.3,0.3))+
+      ylim (c(-0.35,0.2))+
       xlim (c(-0.4,0.5))+
       xlab(paste ("Axis I:", round(Inertia.first*100,2),"%"))+
       ylab(paste ("Axis II:", round(Inertia.scnd*100,2),"%")) + 
@@ -1447,15 +1184,12 @@ plots_year <- lapply (seq (min (fisheries_wtrait$Year), max(fisheries_wtrait$Yea
 
 
 #anime
-
-require(magick)
 list_img <- list.files(path = here ("output", "figs_animation"), full.names = T)
 
 ##https://cran.r-project.org/web/packages/magick/vignettes/intro.html
 a_image<-image_read(list_img)
 animation <-  image_animate(a_image, fps = 1)
 image_write(animation, here ("output","animation_BR_fisheries.gif"))
-
 
 
 
@@ -1582,7 +1316,7 @@ plotA2 <- plotA2 + geom_text_repel(data = most_catched[1:nsp_to_plot,],
                                   ylab ("Axis 2 (18.87%)")
 
 # save
-pdf (here ("output", "trait_space_fishing.pdf"),height=9,width=6)
+pdf (here ("output", "trait_space_fishing"),height=9,width=6)
 
 grid.arrange(plotA2,
              plotB[[1]]+theme(axis.text = element_blank(),
@@ -1617,7 +1351,6 @@ dev.off()
 
 
 
-require(sp)
 
 TS_time <- lapply (seq (min (fisheries_wtrait$Year), max(fisheries_wtrait$Year)), function (t) {
   
@@ -2010,6 +1743,226 @@ trend_sel_sp_region_cart+theme (axis.title.x = element_blank(),
   ylab ("Catch amount (tonnes, squared-root)")
 
 dev.off()
+
+
+# Garbage
+
+## composition
+## vegan:: beta diversity between year
+##  hellinger transformed dataset
+#require(vegan)
+#dist_funct_composition <- vegdist (funct_comp$matrix.T,
+#                                  method = "euclidean",na.rm=T)
+#
+#
+#
+## pcoa
+#require(ape)
+#pcoa_fish_year_func <- pcoa(dist_funct_composition)
+## variance explained by the first and second axes
+#(Exp_axis1_func<-pcoa_fish_year_func$values$Eigenvalues[1]/sum(pcoa_fish_year_func$values$Eigenvalues)*100)
+#(Exp_axis2_func<-pcoa_fish_year_func$values$Eigenvalues[2]/sum(pcoa_fish_year_func$values$Eigenvalues)*100)
+#
+#
+##pcoa_fish_year <- melt (pcoa_fish_year)
+#pcoa_fish_year_func <- cbind (pcoa_fish_year_func$vectors,
+#                         year = as.numeric(rownames(organized_data$community)))
+#
+## dataframe with data
+#pcoa_fish_year_func<-as.data.frame(pcoa_fish_year_func)
+#
+#
+## point size (catch per year)
+#
+#catch_year <- tapply (fisheries_wtrait$CatchAmount_t,
+#                      list(fisheries_wtrait$Year),
+#                      sum) 
+## bind
+#pcoa_fish_year_func$catch <- (catch_year) # point size (half size)
+#
+## ordination (projection of beta diversity )
+## help here
+## https://ggplot2.tidyverse.org/reference/geom_path.html
+#ordination1_func <- ggplot(data=pcoa_fish_year_func,
+#                    aes(x=Axis.1,y=Axis.2)) + 
+#  
+#  geom_point(aes(colour=as.numeric(year),
+#                 size = catch),
+#                
+#               shape=1) + # add the point markers
+#  geom_path(aes(colour=as.numeric(year)),alpha=0.5)+
+#  
+#  geom_text(aes(label=year),
+#            size=2.5,vjust=-1) +
+#  #geom_path(aess(group=year)) +# add the site labels
+#  #scale_colour_manual(values=c("A" = "red", "B" = "blue")) +
+#  coord_equal() +
+#  theme_bw() +
+#  theme(legend.position = "none")
+#
+#
+#ordination1_func
+#
+## correlation of genus to the axes
+#correlation_func <-data.frame( cor (funct_comp$matrix.T,
+#                               pcoa_fish_year_func[,1:2],
+#                               method = "pearson"))
+#correlation_func$trait <- rownames(correlation_func)
+#
+## order
+#
+#correlation_func[order(correlation_func[,1],decreasing=T),]
+#correlation_func[order(correlation_func[,1],decreasing=F),]
+#correlation_func[order(correlation_func[,2],decreasing=T),]
+#
+#
+#
+## project genus names
+#ordination1_func<-ordination1_func + 
+#  
+#  geom_text_repel(data = correlation_func[order(correlation_func[,2],
+#                                                decreasing=T),],
+#                                           aes (x=Axis.1*0.02,
+#                                                y = Axis.2*0.02,
+#                                                label = (trait)),
+#                                           size=3,fontface = "italic",
+#                                           colour="#1363DF",
+#                                           max.overlaps = 100) + 
+#  xlab (paste ("Axis 1 (", round(Exp_axis1_func,2), "%)",sep="")) +
+#  ylab (paste ("Axis 2 (", round(Exp_axis2_func,2), "%)",sep=""))
+#
+#
+#
+### =============================================== 
+## change in composition per region
+## a pesca mudou ao longo do tempo?
+#
+#func_composition_region <- lapply (unique(fisheries_wtrait$Region), function (i){
+#  
+#  # trait composition
+#        
+#  average_traits <- fisheries_wtrait[which(fisheries_wtrait$Region == i),] %>% 
+#          
+#          
+#          group_by(Genus_match) %>% 
+#          
+#          summarise (Body_size = mean (Body_size,na.rm=T),  
+#                     Trophic_level = mean (Trophic_level,na.rm=T), 
+#                     Depth_range = mean (Depth_range,na.rm=T), 
+#                     Diel_activity = getmode (Diel_activity), 
+#                     Size_group = getmode (Size_group), 
+#                     Level_water = getmode (Level_water))  %>%
+#          
+#          
+#          select (Genus_match, Body_size, Trophic_level, Depth_range, 
+#                  Diel_activity, Size_group, Level_water)  
+#        
+#        # transform categorical into ranking traits
+#        # group size
+#        average_traits$Size_group [which(average_traits$Size_group == "sol")] <- 1
+#        average_traits$Size_group [which(average_traits$Size_group == "pair")] <- 2
+#        average_traits$Size_group [which(average_traits$Size_group == "smallg")] <- 3
+#        average_traits$Size_group [which(average_traits$Size_group == "medg")] <- 4
+#        average_traits$Size_group [which(average_traits$Size_group == "largeg")] <- 5
+#        average_traits$Size_group <- ordered (average_traits$Size_group) # ordered
+#        
+#        # level water
+#        average_traits$Level_water [which(average_traits$Level_water == "bottom")] <- 1
+#        average_traits$Level_water [which(average_traits$Level_water == "low")] <- 2
+#        average_traits$Level_water [which(average_traits$Level_water == "high")] <- 3
+#        average_traits$Level_water <- ordered (average_traits$Level_water) # ordered
+#        
+#        # daily activity
+#        average_traits$Diel_activity <- ifelse (average_traits$Diel_activity %in% c("night", "both"),
+#                                                1,0)
+#        average_traits<- data.frame(average_traits)
+#        rownames (average_traits) <- average_traits$Genus_match
+#        average_traits<- average_traits[,-1]
+#        
+#        # taxonomic composition per region (create here)
+#        year_composition_region <- cast (fisheries_wtrait[which(fisheries_wtrait$Region == i),], 
+#                
+#                formula = Year ~ Genus_match, # Genus
+#                
+#                value = "CatchAmount_t",
+#                fun.aggregate = sum
+#          
+#        )
+#        
+#        
+#        # functional composition  
+#        # organize data
+#        organized_data <- organize.syncsa(
+#          
+#          decostand(year_composition_region,'hell'),
+#          average_traits[,-which(colnames(average_traits) == "Diel_activity")])
+#        
+#        # functional composition
+#        funct_comp <- matrix.t(organized_data$community, 
+#                               organized_data$traits, 
+#                               scale = TRUE, 
+#                               ranks = TRUE, 
+#                               notification = TRUE)
+#        
+#        # composition
+#        # vegan:: beta diversity between year
+#        #  hellinger transformed dataset
+#        require(vegan)
+#        dist_funct_composition <- vegdist (funct_comp$matrix.T,
+#                                           method = "euclidean",na.rm=T)
+#        
+#        
+#        
+#        # pcoa
+#        pcoa_fish_year_func <- pcoa(dist_funct_composition)
+#        pcoa_fish_year_func
+#        
+#})
+#
+#
+#
+## composition per region
+#comp_change_func <- bind_rows(pcoa_fish_year_func %>% 
+#                           bind_cols(region = "Brazil", Year = unique(fisheries_wtrait$Year)),
+#                           func_composition_region[[1]]$vectors %>% 
+#                           bind_cols(region = "Norte", Year = unique(fisheries_wtrait$Year)),
+#                           func_composition_region[[2]]$vectors %>% 
+#                           bind_cols(region = "NE", Year = unique(fisheries_wtrait$Year)),
+#                           func_composition_region[[3]]$vectors %>% 
+#                           bind_cols(region = "SE", Year = unique(fisheries_wtrait$Year)),
+#                           func_composition_region[[4]]$vectors %>% 
+#                           bind_cols(region = "Sul", Year = unique(fisheries_wtrait$Year))) %>% 
+#  data.frame() %>% dplyr::rename(change = Axis.1) %>% 
+#  ggplot(aes(x = Year, y = change)) +
+#  geom_point() +
+#  facet_wrap(~ region, ncol = 5) +
+#  theme_classic() +
+#  geom_smooth() +
+#  labs(x = "", y = "Change in catch\n functional composition (Beta functional)")+
+#  theme (legend.position = c(0.12,0.90),
+#         axis.title = element_text(size=15),
+#         strip.text.x = element_text(size = 14, color = "black", 
+#                                     face = "bold"),
+#         strip.background = element_rect(color="black", 
+#                                         fill="gray60",
+#                                         size=1.5, linetype="solid"
+#         )) 
+#
+#
+## arrange plots
+#pdf (here ("output", "fisheries_functional_composition.pdf"),height=6,width=7)
+#compostion1_func<-grid.arrange(ordination1_func,
+#                          comp_change_func,
+#                          ncol=5,nrow=6,
+#                          layout_matrix = rbind (c (1,1,1,1,1),
+#                                                 c (1,1,1,1,1),
+#                                                 c (1,1,1,1,1),
+#                                                 c (1,1,1,1,1),
+#                                                 c (2,2,2,2,2),
+#                                                 c (2,2,2,2,2)))
+#
+#
+#dev.off()
 
 
 

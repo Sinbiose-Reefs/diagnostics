@@ -1,7 +1,7 @@
 ---
-title: "Diagnostics of reef fisheries in Brazil"
-author: "Reef Synthesis Working Group"
-date: '2022-06-23'
+title: "Diagnostics of Brazilian reef fisheries"
+author: "Reef Synthesis Working Group (ReefSYN)"
+date: '2023-01-17'
 output: github_document
 ---
 
@@ -16,13 +16,198 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## TRENDS IN FISHERIES OVER TIME
+## TRENDS IN BRAZILIAN REEF FISHERIES OVER SPACE AND TIME
 
-```{r, echo = F, fig.height=7,fig.width=12,fig.align= "center",fig.margin=T, message=F, warning=F,out.width="100%",out.height="100%",fig.keep=1}
+```{r, echo = F, fig.height=7,fig.width=12,fig.align= "center",fig.margin=T, message=F, warning=F,out.width="100%",out.height="100%"}
 
-source ("R/script.R")
+# Diagnostics of reef fisheries in Brazil
+# Linda Eggertsen et al.
+
+
+# load functions and packages
+source ("R/functions.R")
+source ("R/packages.R")
+
+
+
+# load fisheries data (Freire et al. 2021)
+fisheries <- read.xlsx (here ("data", "FINAL_RECONSTRUCTED_Brazil_1950_2015_CommercialEtapaII_04072021_IP_Freire.xlsx"),
+                        sheet = 2)
+
+# adjust name
+fisheries$Sector [which(fisheries$Sector == "industrial (LS, C)")] <- "Industrial (LS, C)"
+
+
+
+# load data of Pinheiro et al. 2018 (BR reef fish)
+reef_fish <- read.csv (here ("data","brazilian-reef-fish-table-04-mar-18-website.xlsx - Database.csv"))
+reef_fish<-reef_fish[which(reef_fish$Relation == "RES"),] # REef fish  (RESident fish according to Pinheiro et al. 2018)
+
+# mistake on the database
+reef_fish$Genus [grep ("Ocyurus chrysurus", reef_fish$Species)] <- "Ocyurus"
+
+
+# trait data (Quimbayo et al. trait database)
+
+traits <- read.csv (here ("data", 
+                          "Atributos_especies_Atlantico_&_Pacifico_Oriental_2020_04_28.csv"),
+                    sep = ";")
+
+
+# genus first letter to up
+traits$Genus <- firstup(traits$Genus)  
+
+
+# ajusts in trait values  
+traits$Body_size <- as.numeric(gsub (",",".",traits$Body_size))
+traits$Trophic_level <- as.numeric(gsub (",",".",traits$Trophic_level))
+traits$Depth_range <- as.numeric(gsub (",",".",traits$Depth_range))
+traits$Depth_max<-as.numeric(gsub (",",".",traits$Depth_max))
+traits$Depth_min<-as.numeric(gsub (",",".",traits$Depth_min))
+
+# average depth
+traits$Depth_mean<- apply (cbind (traits$Depth_max,  
+                                  traits$Depth_min),1,mean,na.rm=T)  # row-wise average
+
+
+# aggregate data of QUimbayo et al. at the genus level
+traits <- traits %>% 
+  
+  group_by(Genus) %>% 
+  
+  summarise (Body_size = mean (Body_size,na.rm=T),  
+             Trophic_level = mean (Trophic_level,na.rm=T), 
+             Depth_range = mean (Depth_range,na.rm=T), 
+             Depth_mean = mean (Depth_mean,na.rm=T),
+             Depth_max = mean (Depth_max,na.rm=T), 
+             Depth_min = mean (Depth_min,na.rm=T),
+             Diet = getmode(Diet),
+             Diel_activity = getmode (Diel_activity), 
+             Size_group = getmode (Size_group), 
+             Level_water = getmode (Level_water))  %>%
+  
+  
+  select (Genus, Body_size, Trophic_level, 
+          Depth_min,Depth_max,Depth_range,
+          Depth_mean, Diet,
+          Diel_activity, Size_group, Level_water)
+
+
+
+# fisheries ~year
+# genus
+genus <- strsplit(fisheries$TaxonName," ")
+genus <- do.call(rbind, genus)
+fisheries$Genus_match <- genus[,1]
+
+
+# fisheries data (matching with Pinheiro et al. 2018)
+# reef fish genus
+#table(unique(fisheries$Genus_match) %in% reef_fish$Genus )
+fisheries_wtrait<-fisheries[which(fisheries$Genus_match %in% reef_fish$Genus),]
+
+
+
+# match trait & fisheries
+fisheries_wtrait <- cbind (fisheries_wtrait,
+                           
+                           traits [match (fisheries_wtrait$Genus,traits$Genus ),]
+                           
+                           )
+
+
+# recode region
+fisheries_wtrait$Region <- recode_factor(fisheries_wtrait$Region,    
+                                         "Norte" = "North",
+                                         "NE" = "Northeastern", 
+                                         "Sul" = "South",
+                                         "SE" = "Southeast")
+
+
+
+
+# ---------------------------
+# plotting
+
+
+# catch year
+catch_year <- fisheries_wtrait %>%
+  
+  group_by(Year,Sector,Region) %>% 
+
+  
+  summarize(sum_catch=sum(CatchAmount_t)
+            
+            
+  ) 
+
+
+# plot
+
+catch_year_plot <- ggplot (catch_year, aes (x=Year, 
+                         y=sum_catch,
+                         colour = Sector)) + 
+  facet_wrap(~Region,scales = "fixed")+
+  geom_line(size=1.5) + 
+  scale_fill_viridis_d(option ="viridis", begin = 0.3,end=0.8) + 
+  theme_classic() + 
+  scale_colour_viridis_d(option ="viridis", begin = 0.3,end=0.8) + 
+  theme (legend.position = "none",
+         axis.title = element_blank(),
+         strip.text.x = element_text(size = 14, color = "black", 
+                                     face = "bold"),
+         strip.background = element_rect(color="black", 
+                                         fill="gray60",
+                                         size=1.5, linetype="solid"
+         ))
+
+  
+
+# overall trend
+overall_trend <- fisheries_wtrait %>%
+  
+  group_by(Year,Sector) %>% 
+  
+  summarize(sum_catch=sum(CatchAmount_t),
+  
+            ) 
+
+
+# plot overall trend
+catch_overall_trend <- ggplot (overall_trend, aes (x=Year, 
+                                            y=sum_catch,
+                                            colour = Sector)) + 
+  geom_line(size=1.5) + 
+  scale_fill_viridis_d(option ="viridis", begin = 0.3,end=0.8) + 
+  theme_classic() + 
+  scale_colour_viridis_d(option ="viridis", begin = 0.3,end=0.8) + 
+  theme (legend.position = c(0.22,0.85),
+         axis.title = element_blank(),
+         strip.text.x = element_text(size = 14, color = "black", 
+                                     face = "bold"),
+         strip.background = element_rect(color="black", 
+                                         fill="gray60",
+                                         size=1.5, linetype="solid"
+         )) 
+
+
+
+# arrange plots
+
+grid.arrange (catch_overall_trend, 
+              catch_year_plot+labs (caption = "Source: Freire et al. 2021 & Pinheiro et al. 2018"),
+              nrow =4, ncol =4,
+              layout_matrix = rbind (c(1,1,1,1),
+                                     c(1,1,1,1),
+                                     c(2,2,2,2),
+                                     c(2,2,2,2)),
+              left = "Sum of the Catch Amount (T)"
+)
+
+
 
 
 
 ```
+
 
