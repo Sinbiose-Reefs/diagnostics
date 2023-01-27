@@ -127,6 +127,16 @@ unique(fisheries_wtrait [grep("om", fisheries_wtrait$Diet), "Genus"])
 unique(fisheries_wtrait [which (fisheries_wtrait$Year %in% seq (1970,1973) & 
                                    fisheries_wtrait$Region == "South"),"TaxonName"])
 
+
+# remove taxa likely with taxonomic misidentification
+unique(fisheries_wtrait$TaxonName)[order(unique(fisheries_wtrait$TaxonName))]
+
+fisheries_wtrait <- fisheries_wtrait %>% 
+  
+  filter(TaxonName %in% c("Myrichthys breviceps" , "Pomacanthus paru") == F)
+
+
+
 # ---------------------------
 # plotting
 
@@ -484,9 +494,6 @@ names(year_region_composition_filtered) <- unique(fisheries_wtrait$Region)
 
 
 
-# myryctis
-
-range(year_region_composition_filtered[[2]]$Myrichthys)
 # lapply (year_region_composition_filtered,dim)
 
 #  beta diversity
@@ -736,7 +743,7 @@ organized_data <- organize.syncsa(
                                                                         "Depth_range",
                                                                         "Depth_mean"))])
 
-# functional composition
+# functional compositionw
 funct_comp <- matrix.t(organized_data$community, 
                        organized_data$traits, 
                        scale = F, 
@@ -898,7 +905,9 @@ plot_size_depth<-ggplot (fish_year_df,
 
 pdf (here ("output", "size_depth_catch_fish.pdf"),height=6,width=5)
 
+
 plot_size_depth
+
 
 dev.off()
 
@@ -1311,7 +1320,8 @@ most_catched <- all_overall[order(all_overall$sum_catch, decreasing=T),]
 nsp_to_plot <- 100
 plotA2 <- plotA2 + geom_text_repel(data = most_catched[1:nsp_to_plot,], 
                                    aes (x=Axis.1, y=Axis.2, label=(sp)),
-                                   size=4) +
+                                   size=4,
+                                   max.overlaps = 100) +
                                   xlab ("Axis 1 (38.44%)") + 
                                   ylab ("Axis 2 (18.87%)")
 
@@ -1632,10 +1642,10 @@ sel_spp_trends <- ggplot (selected_fish_trend[which(selected_fish_trend$Genus_ma
 
 agg1<-aggregate(CatchAmount_t~Region+Genus_match+Year,sum,data=fisheries_wtrait)
 # change region names
-agg1$Region[which(agg1$Region == "Sul")] <- "South"
-agg1$Region[which(agg1$Region == "SE")] <- "Southeast"
-agg1$Region[which(agg1$Region == "NE")] <- "Northeast"
-agg1$Region[which(agg1$Region == "Norte")] <- "North"
+#agg1$Region[which(agg1$Region == "Sul")] <- "South"
+#agg1$Region[which(agg1$Region == "SE")] <- "Southeast"
+#agg1$Region[which(agg1$Region == "NE")] <- "Northeast"
+#agg1$Region[which(agg1$Region == "Norte")] <- "North"
 
 
 # plot
