@@ -536,6 +536,7 @@ comp_change <- bind_rows(pcoa_fish_year %>%
                          dist_composition_pcoa[[2]] %>% 
                            bind_cols(region = "Northeast", Year = unique(fisheries_wtrait$Year)),
                          dist_composition_pcoa[[3]] %>% 
+                           mutate_at (vars (Axis.1), funs (.*-1)) %>%
                            bind_cols(region = "Southeast", Year = unique(fisheries_wtrait$Year)),
                          dist_composition_pcoa[[4]] %>% 
                            bind_cols(region = "South", Year = unique(fisheries_wtrait$Year))) %>% 
@@ -569,6 +570,10 @@ catch_year_region <- tapply (fisheries_wtrait$CatchAmount_t,
 # ordination (projection of beta diversity )
 # help here : https://ggplot2.tidyverse.org/reference/geom_path.html
 
+# change the direction of southeast ordination
+dist_composition_pcoa[[3]]  <- dist_composition_pcoa[[3]] %>% 
+  mutate_at (vars (Axis.1), funs (.*-1))
+
 # one plot per region 
 ordination1_reg <- lapply (seq(1,length(dist_composition_pcoa)), function (i) {
         
@@ -578,12 +583,14 @@ ordination1_reg <- lapply (seq(1,length(dist_composition_pcoa)), function (i) {
                 dist_composition_pcoa[[i]]$year,
                 "")
   
-        ordination1_reg<-ggplot(data=dist_composition_pcoa[[i]],
+        ordination1_reg <-ggplot(data=dist_composition_pcoa[[i]],
                             aes(x=Axis.1,y=Axis.2)) + 
-          geom_point(aes(colour=as.numeric(year),
+          geom_point(aes(colour=catch_year_region[i,],
                          size = catch_year_region[i,]),
+                     shape=19)+
+                     scale_colour_viridis_c(option = "magma",direction=-1)+
                      
-                     shape=1)+
+                     
           geom_path(aes(colour=as.numeric(year)),alpha=0.5)+
           
           geom_text(aes(label=year),
@@ -591,6 +598,7 @@ ordination1_reg <- lapply (seq(1,length(dist_composition_pcoa)), function (i) {
           ggtitle (names(year_composition_region)[[i]])+
           coord_equal() +
           theme_bw() +
+          
           
           theme(legend.position = "none")
         
@@ -633,8 +641,8 @@ ordination1_reg <- lapply (seq(1,length(dist_composition_pcoa)), function (i) {
                           size=2,fontface = "italic",
                           colour = "#47B5FF",
                           max.overlaps = 100) +
-          xlim(-0.45, 0.45)+
-          ylim(-0.4,0.4)
+          xlim(-0.38, 0.38)+
+          ylim(-0.38,0.38)
         
           ordination1_reg
 
@@ -659,7 +667,7 @@ dev.off()
 
 # composition per region
 
-pdf (here ("output", "fisheries_composition_region.pdf"),height=8,width=8)
+pdf (here ("output", "fisheries_composition_region.pdf"),height=10,width=10)
 
 grid.arrange(
   ordination1_reg[[2]], 
@@ -759,10 +767,10 @@ data_funct_trend <- data.frame (funct_comp$matrix.T,
 data_funct_trend <- melt (data_funct_trend,id.vars = c("year","beta")) # melt
 
 # save plot
-pdf (here ("output", "composition_funct"))
+pdf (here ("output", "composition_funct.pdf"),width=7,height=6)
 
 ggplot (data_funct_trend, aes (x=beta, y = value)) +
-  geom_point() + 
+  geom_point(alpha=0.5,col = "turquoise3") + 
   facet_wrap(~variable, scale = "free_y") +
   geom_smooth(method = "gam",
               formula = y ~ s(x, bs = "cs",k=4),col ="turquoise3") + 
@@ -776,7 +784,8 @@ ggplot (data_funct_trend, aes (x=beta, y = value)) +
          )) + 
   geom_text_repel(data = data_funct_trend[which(data_funct_trend$year %in% 
                                               seq(1950,2020,10)),],
-                  aes (label = year),size=3)
+                  aes (label = year),size=3)+
+  theme_bw()
 dev.off()
 
 
@@ -897,7 +906,8 @@ plot_size_depth<-ggplot (fish_year_df,
          ))+
   geom_text_repel(data = fish_year_df[which(fish_year_df$year %in% 
                                               seq(1950,2020,10)),],
-                  aes (label = year),size=3)
+                  aes (label = year),size=3) + 
+  theme_bw()
   
   
 
@@ -1062,6 +1072,7 @@ plots_year <- lapply (seq (min (fisheries_wtrait$Year), max(fisheries_wtrait$Yea
       group_by(Genus_match,Year) %>% 
       
       summarize(sum_catch=sum(CatchAmount_t,na.rm=T),
+                TL = mean (Trophic_level,na.rm=T)
       ) 
     
     
@@ -1074,7 +1085,7 @@ plots_year <- lapply (seq (min (fisheries_wtrait$Year), max(fisheries_wtrait$Yea
     all_year <- data.frame (all , 
                       catch_year_genus [match (all$sp, 
                                                catch_year_genus$Genus_match), 
-                                        "sum_catch"])
+                                        c("sum_catch", "TL")])
     
     # rm NAs
     all_year<-all_year[is.na(all_year$sum_catch) != T,]
@@ -1108,18 +1119,27 @@ plots_year <- lapply (seq (min (fisheries_wtrait$Year), max(fisheries_wtrait$Yea
                  nudge_y = 0.02)+ 
       theme (legend.position = "none")
     
-    plotA
+    
     
     # complete space
-    plotA2 <- plotA + geom_polygon(data=a_year, aes (Axis.1,Axis.2),
-                   alpha=0.3,
-                   fill="#5BB318",
-                   colour = "#2B7A0B",
+    plotA2 <- plotA + geom_polygon(data=a_year, 
+                                   aes (Axis.1,Axis.2),
+                   alpha=0.5,
+                   fill="white",
+                   #colour = "#2B7A0B",
                    size=1,
                    linetype = 3) +
       # point size
       geom_point(data = all_year [is.na (all_year$sum_catch) != T,], 
-                 aes (size=(sum_catch),alpha=0.5)) +
+                 aes (size=(sum_catch),
+                      
+                      fill=TL,
+                      colour = TL,
+                      alpha=0.75)) +
+      scale_colour_gradient2(low = "blue", 
+                             mid = "white",
+                             high = "red",
+                             midpoint=3)+
       ggtitle (t)
      
     
