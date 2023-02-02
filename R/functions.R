@@ -18,3 +18,11 @@ poison_smooth <- function(...) {
               method.args = list(family = "negbin(1)"),...)
   # geom_smooth(method = "glm", method.args = list(family = "poisson"), ...) # glm option
 }
+
+
+# 
+
+
+
+
+
