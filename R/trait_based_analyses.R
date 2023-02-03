@@ -989,6 +989,14 @@ TL_fisheries$Region <- recode_factor(TL_fisheries$Region,
 TL_fisheries$TrGroup <- factor(TL_fisheries$TrGroup,
                                levels = c("fc", "im", "is", "om", "hm", "hd"))
 
+TL_fisheries$TrGroup <- recode_factor(TL_fisheries$TrGroup, 
+                                     "fc" = "PC", 
+                                     "im" = "IM",
+                                     "is" = "IS", 
+                                     "om" = "OM",
+                                     "hm" = "HM",
+                                     "hd" = "HD")
+
 ## pot trnds over time
 trophic_level_trends <- ggplot (TL_fisheries, aes (x=Year, y=value,
                                                    colour = TrGroup)) + 
@@ -1190,39 +1198,40 @@ correlations<-correlations [-which(rownames(correlations) %in% c("Axis.1","Axis.
 # show traits in the trait space
 
 
-plotA2 <- plotA2 + geom_segment(aes(x = 0, y = 0, 
-                                    xend = correlations[1,1]*0.2, 
-                                    yend = correlations[1,2]*0.2),size = 1,
-                                color="#2B7A0B",alpha=0.08,
-                                arrow = arrow(length = unit(.35, "cm")))  + 
-  ## annotate
-  annotate(geom="text",x=correlations[1,1]*0.22,
-           y=correlations[1,2]*0.30,label="Total length",
-           color="#2B7A0B",alpha=0.5) +
-  
-  geom_segment(aes(x = 0, y = 0, 
-                   xend = correlations[2,1]*0.2, 
-                   yend = correlations[2,2]*0.2),size = 1,
-               color="#2B7A0B",alpha=0.08,
-               arrow = arrow(length = unit(.35, "cm"))) + 
-  annotate(geom="text",x=correlations[2,1]*0.27,
-           y=correlations[2,2]*0.22,label="Trophic level",
-           color="#2B7A0B",alpha=0.5) +
-  
-  geom_segment(aes(x = 0, y = 0, 
-                   xend = correlations[3,1]*0.2, 
-                   yend = correlations[3,2]*0.2),size = 1,
-               color="#2B7A0B",alpha=0.08,
-               arrow = arrow(length = unit(.35, "cm"))) + 
-  annotate(geom="text",x=correlations[3,1]*0.37,
-           y=correlations[3,2]*0.2,label="Max depth",
-           color="#2B7A0B",alpha=0.5) +
-  
-  geom_segment(aes(x = 0, y = 0, 
-                   xend = correlations[4,1]*0.2, 
-                   yend = correlations[4,2]*0.2),size = 1,
-               color="#2B7A0B",alpha=0.1,
-               arrow = arrow(length = unit(.35, "cm"))) + 
-  annotate(geom="text",x=correlations[4,1]*0.25,
-           y=correlations[4,2]*0.23,label="Level water : Group size",
-           color="#2B7A0B",alpha=0.5)  
+#plotA2_cor <- plotA + geom_segment(aes(x = 0, y = 0, 
+#                                    xend = correlations[1,1]*0.2, 
+#                                    yend = correlations[1,2]*0.2),size = 1,
+#                                color="#2B7A0B",alpha=0.08,
+#                                arrow = arrow(length = unit(.35, "cm")))  + 
+#  ## annotate
+#  annotate(geom="text",x=correlations[1,1]*0.22,
+#           y=correlations[1,2]*0.30,label="Total length",
+#           color="#2B7A0B",alpha=0.5) +
+#  
+#  geom_segment(aes(x = 0, y = 0, 
+#                   xend = correlations[2,1]*0.2, 
+#                   yend = correlations[2,2]*0.2),size = 1,
+#               color="#2B7A0B",alpha=0.08,
+#               arrow = arrow(length = unit(.35, "cm"))) + 
+#  annotate(geom="text",x=correlations[2,1]*0.27,
+#           y=correlations[2,2]*0.22,label="Trophic level",
+#           color="#2B7A0B",alpha=0.5) +
+#  
+#  geom_segment(aes(x = 0, y = 0, 
+#                   xend = correlations[3,1]*0.2, 
+#                   yend = correlations[3,2]*0.2),size = 1,
+#               color="#2B7A0B",alpha=0.08,
+#               arrow = arrow(length = unit(.35, "cm"))) + 
+#  annotate(geom="text",x=correlations[3,1]*0.37,
+#           y=correlations[3,2]*0.2,label="Max depth",
+#           color="#2B7A0B",alpha=0.5) +
+#  
+#  geom_segment(aes(x = 0, y = 0, 
+#                   xend = correlations[4,1]*0.2, 
+#                   yend = correlations[4,2]*0.2),size = 1,
+#               color="#2B7A0B",alpha=0.1,
+#               arrow = arrow(length = unit(.35, "cm"))) + 
+#  annotate(geom="text",x=correlations[4,1]*0.25,
+#           y=correlations[4,2]*0.23,label="Level water : Group size",
+#           color="#2B7A0B",alpha=0.5)  
+#
