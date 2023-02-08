@@ -432,6 +432,7 @@ dir.create(here ("output", "figs_animation"))
 
 plots_year <- lapply (seq (min (fisheries_wtrait$Year), max(fisheries_wtrait$Year)), function (t) {
   
+  
   # define year
   year <- t
   
@@ -552,7 +553,7 @@ plots_year <- lapply (seq (min (fisheries_wtrait$Year), max(fisheries_wtrait$Yea
                                      nudge_x = 0.02,
                                      nudge_y = 0.02) 
   plotA2
-  ggsave (filename = here ("output", "figs_animation", paste ("fig", t, ".png"))) 
+  #ggsave (filename = here ("output", "figs_animation", paste ("fig", t, ".png"))) 
   
 })
 
@@ -564,6 +565,142 @@ list_img <- list.files(path = here ("output", "figs_animation"), full.names = T)
 a_image<-image_read(list_img)
 animation <-  image_animate(a_image, fps = 1)
 image_write(animation, here ("output","animation_BR_fisheries.gif"))
+
+
+
+# plots for selected years in each region 
+list_years <- c (1950,1975, 2000, 2015)
+
+plots_reg_sel_years <- lapply (unique(fisheries_wtrait$Region), function (reg)
+  
+        lapply (list_years, function (t) {
+  
+  
+  # choose the dataset of one specific year
+  chosen_set <- fisheries_wtrait[which(fisheries_wtrait$Region %in% reg 
+                                       & 
+                                      fisheries_wtrait$Year %in% t ),]
+  
+  # points proportional to the catch
+  catch_year_genus <- chosen_set %>%
+    
+    group_by(Genus_match,Year) %>% 
+    
+    summarize(sum_catch=sum(CatchAmount_t,na.rm=T),
+              TL = mean (Trophic_level,na.rm=T)
+    ) 
+  
+  
+  #  bycatch
+  bycatch_year <-sum(catch_year_genus$sum_catch,na.rm=T)*percentage_for_bycatch
+  catch_year_genus<- catch_year_genus[which(catch_year_genus$sum_catch > bycatch_year),]
+  
+  
+  # size
+  all_year <- data.frame (all , 
+                          catch_year_genus [match (all$sp, 
+                                                   catch_year_genus$Genus_match), 
+                                            c("sum_catch", "TL")])
+  
+  # rm NAs
+  all_year<-all_year[is.na(all_year$sum_catch) != T,]
+  
+  #year convex hull
+  a_year <- all_year [chull(all_year[,1:axes_to_choose], y = NULL),] # its convex hull
+  
+  # crop dat.idw
+  p <- Polygon(a_year[,c("Axis.1", "Axis.2")] )
+  ps <- Polygons(list(p),1)
+  sps <- SpatialPolygons(list(ps))
+  
+  ## crop and mask
+  r2 <- crop(raster (dat.idw), extent(sps))
+  r3 <- mask(r2, sps)
+  
+  ## df with data
+  df_vals <- cbind (coordinates (r3),
+                    pred = values(r3))
+  
+  
+  # plot 
+  plotA <-ggplot(data.frame (df_vals)) + 
+    geom_tile(aes(x, y, fill = pred)) +
+    #scale_fill_viridis_c() +  
+    scale_fill_gradient2(low = "blue", 
+                         mid = "white",
+                         high = "red",
+                         midpoint=3,
+                         na.value = NA)+
+    scale_alpha(range = c(0.15, 0.65), guide = "none") +  
+    ggtitle("Trophic level") +
+    coord_quickmap()
+  
+  
+  ## plot A (complete space)
+  plotA1 <- plotA+
+    geom_point(data = a, aes(x=Axis.1, 
+                             y=Axis.2), 
+               size=3,shape=3) + 
+    theme_bw()+
+    
+    # polygon
+    
+    geom_polygon(data=a, aes (Axis.1,Axis.2),
+                 alpha=0.001,
+                 fill="gray",
+                 colour = "black",
+                 size=1,
+                 linetype = 2)+ 
+    theme_bw() +
+    #ylim (c(-0.35,0.2))+
+    #xlim (c(-0.4,0.5))+
+    xlab(paste ("Axis I:", round(Inertia.first*100,2),"%"))+
+    ylab(paste ("Axis II:", round(Inertia.scnd*100,2),"%"))# + 
+    #geom_label(data = a, aes (x=Axis.1, y=Axis.2, label=(sp)),
+    #           size=3,
+    #           nudge_x = 0.02,
+    #           nudge_y = 0.02)
+  
+  
+  # complete space
+  plotA2 <- plotA1 + 
+    geom_point(data = all_year [is.na (all_year$sum_catch) != T,], 
+               aes (x=Axis.1,
+                    y=Axis.2,
+                    size=sum_catch,
+                    fill=TL,
+                    colour = TL),
+               alpha=0.85) +
+    scale_colour_gradient2(low = "blue", 
+                           mid = "white",
+                           high = "red",
+                           midpoint=3)+
+    ggtitle (paste (reg,
+                    t,
+                    sep=", "))
+  
+  
+  plotA2 <- plotA2+ 
+    theme (legend.position = "none",
+           axis.title = element_blank(),
+           axis.text = element_blank(),
+           plot.title = element_text(size=8))
+  
+  # genus with large amount of catch
+  most_catched <- all_year[order(all_year$sum_catch, decreasing=T),]
+  
+  # plot the five most catched
+  #nsp_to_plot <- 10
+  #plotA2 <- plotA2 + geom_text_repel(data = most_catched[1:nsp_to_plot,], 
+  #                                   aes (x=Axis.1, y=Axis.2, label=(sp)),
+  #                                   size=3,
+  #                                   nudge_x = 0.02,
+  #                                   nudge_y = 0.02) 
+  plotA2
+  
+  
+}))
+
 
 
 
@@ -738,9 +875,9 @@ nsp_to_plot <- 100
 plotA2 <- plotA2 + geom_text_repel(data = most_catched[1:nsp_to_plot,], 
                                    aes (x=Axis.1, y=Axis.2, label=(sp)),
                                    size=4,
-                                   max.overlaps = 100) +
-  xlab ("Axis 1 (38.44%)") + 
-  ylab ("Axis 2 (18.87%)")
+                                   max.overlaps = 100)  +
+  xlab(paste ("Axis I:", round(Inertia.first*100,2),"%"))+
+  ylab(paste ("Axis II:", round(Inertia.scnd*100,2),"%"))
 
 # save
 pdf (here ("output", "trait_space_fishing.pdf"),height=9,width=6)
@@ -770,6 +907,26 @@ grid.arrange(plotA2+theme (legend.position = "right"),
 
 dev.off()
 
+# trait space fishing per region and year
+
+
+pdf(here ("output", "trait_space_fishing_region.pdf"),height=15,width=12)
+grid.arrange(plotA2+theme (legend.position = "right"),
+             plots_reg_sel_years[[1]][[1]],plots_reg_sel_years[[1]][[2]],plots_reg_sel_years[[1]][[3]],plots_reg_sel_years[[1]][[4]],
+             plots_reg_sel_years[[2]][[1]],plots_reg_sel_years[[2]][[2]],plots_reg_sel_years[[2]][[3]],plots_reg_sel_years[[2]][[4]],
+             plots_reg_sel_years[[3]][[1]],plots_reg_sel_years[[3]][[2]],plots_reg_sel_years[[3]][[3]],plots_reg_sel_years[[3]][[4]],
+             plots_reg_sel_years[[4]][[1]],plots_reg_sel_years[[4]][[2]],plots_reg_sel_years[[4]][[3]],plots_reg_sel_years[[4]][[4]],
+             nrow=7,ncol=4,
+             layout_matrix = rbind (c(NA,1,1,NA),
+                                    c(NA,1,1,NA),
+                                    c(NA,1,1,NA),
+                                    c(2,3,4,5),
+                                    c(6,7,8,9),
+                                    c(10,11,12,13),
+                                    c(14,15,16,17)))
+
+
+dev.off()
 
 # --------------------------------
 # exploring trait space over time
