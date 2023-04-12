@@ -413,7 +413,7 @@ ordination1<-ggplot(data=pcoa_fish_year,
   coord_equal() +
   theme_bw() +
   
-  theme(legend.position = "none")
+  theme(legend.position = "right")
 
 ordination1
 
