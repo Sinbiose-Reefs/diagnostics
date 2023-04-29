@@ -1155,6 +1155,9 @@ TL_fisheries$TrGroup <- recode_factor(TL_fisheries$TrGroup,
                                      "hd" = "HD")
 
 ## pot trnds over time
+require(ggbreak)
+
+
 trophic_level_trends <- ggplot (TL_fisheries, aes (x=Year, y=value,
                                                    colour = TrGroup)) + 
   facet_wrap(~Region,scales = "free")+
@@ -1170,10 +1173,105 @@ trophic_level_trends <- ggplot (TL_fisheries, aes (x=Year, y=value,
                                          size=1.5, linetype="solid"
          )) 
 
+
+
+
 pdf (here ("output", "TL_trends.pdf"),height=6,width=6)
 trophic_level_trends+theme_classic()
 dev.off()
 
+# plot per region with break in the axis
+
+p1<-ggplot (TL_fisheries %>%
+          filter (Region == "North"), aes (x=Year, y=value,
+                           colour = TrGroup)) + 
+  facet_wrap(~Region,scales = "free")+
+  geom_line(size=1) + 
+  xlab ("Year") + 
+  ylab ("Sum catch (thousands of tonnes)") + 
+  scale_colour_viridis_d(option = "viridis") + 
+  theme (strip.text = element_text(face="bold"),
+         strip.text.x = element_text(size = 10, color = "black", 
+                                     face = "bold"),
+         strip.background = element_rect(color="gray70", 
+                                         fill="gray70",
+                                         size=1.5, linetype="solid"
+         ),
+         legend.position = "none",
+         axis.text.x = element_blank()) +
+  scale_y_break(c(450, 1000), expand=T,scales=4)
+
+# northeast
+p2<-ggplot (TL_fisheries %>%
+              filter (Region == "Northeastern"), aes (x=Year, y=value,
+                                               colour = TrGroup)) + 
+  facet_wrap(~Region,scales = "free")+
+  geom_line(size=1) + 
+  xlab ("Year") + 
+  ylab ("Sum catch (thousands of tonnes)") + 
+  scale_colour_viridis_d(option = "viridis") + 
+  theme (strip.text = element_text(face="bold"),
+         strip.text.x = element_text(size = 10, color = "black", 
+                                     face = "bold"),
+         strip.background = element_rect(color="gray70", 
+                                         fill="gray70",
+                                         size=1.5, linetype="solid"
+         ),
+         axis.text.x  = element_blank(),
+         legend.position = "none") +
+  scale_y_break(c(1400, 3000), expand=T,scales=4)
+
+
+# southeast
+p3<-ggplot (TL_fisheries %>%
+              filter (Region == "Southeast"), aes (x=Year, y=value,
+                                                      colour = TrGroup)) + 
+  facet_wrap(~Region,scales = "free")+
+  geom_line(size=1) + 
+  xlab ("Year") + 
+  ylab ("Sum catch (thousands of tonnes)") + 
+  scale_colour_viridis_d(option = "viridis") + 
+  theme (strip.text = element_text(face="bold"),
+         strip.text.x = element_text(size = 10, color = "black", 
+                                     face = "bold"),
+         strip.background = element_rect(color="gray70", 
+                                         fill="gray70",
+                                         size=1.5, linetype="solid"
+         ),
+         legend.position = "none") +
+  scale_y_break(c(1000, 2000), expand=T,scales=4)
+
+
+# south
+p4<-ggplot (TL_fisheries %>%
+              filter (Region == "South"), aes (x=Year, y=value,
+                                                   colour = TrGroup)) + 
+  facet_wrap(~Region,scales = "free")+
+  geom_line(size=1) + 
+  xlab ("Year") + 
+  ylab ("Sum catch (thousands of tonnes)") + 
+  scale_colour_viridis_d(option = "viridis") + 
+  theme (strip.text = element_text(face="bold"),
+         strip.text.x = element_text(size = 10, color = "black", 
+                                     face = "bold"),
+         strip.background = element_rect(color="gray70", 
+                                         fill="gray70",
+                                         size=1.5, linetype="solid"
+         ),
+         legend.position = "none") +
+  scale_y_break(c(200, 500), expand=T,scales=4)
+
+# get the legend
+legend_to_plot <- get_legend (p2 + theme(legend.position="right",
+                                         legend.direction = "horizontal",
+                                  legend.title = element_blank()))
+
+# plot with breaks
+pdf (here ("output", "TL_trends_breaks.pdf"),height=6,width=6)
+
+(p1 | p2)/(p3 | p4) #+ legend_to_plot
+
+dev.off()
 
 ## ======================================
 
