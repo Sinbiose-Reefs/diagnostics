@@ -211,3 +211,13 @@ grid.arrange (catch_overall_trend,
 ```
 
 
+
+#### This paper was produced using the following software and associated packages:
+
+```{r pressure, echo=F,warning=F,message=F}
+
+source("R/packages.R")
+sessionInfo()
+
+
+```
