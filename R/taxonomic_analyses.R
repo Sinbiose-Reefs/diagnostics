@@ -170,6 +170,68 @@ fisheries_wtrait <- fisheries_wtrait %>%
 
 
 
+# barplot for policy brief
+
+
+
+
+# summed catches
+sum_catches<- fisheries_wtrait %>%
+  
+  filter (Year > 2000) %>%
+  
+  group_by(Sector,Region) %>% 
+  
+  summarize(sum_catch= (mean(CatchAmount_t))) %>%
+  
+  group_by  (Region) %>%
+  
+  summarize(mean_sum_catch= (sum(sum_catch)))
+  
+  
+
+fisheries_wtrait %>%
+  
+  filter (Year > 2000) %>%
+  
+  group_by(Sector,Region) %>% 
+  
+  summarize(mean_catch= mean(CatchAmount_t)) %>%
+  
+  right_join (sum_catches, by = "Region") %>%
+  
+  mutate (prop = mean_catch/mean_sum_catch) %>%
+  
+  
+  ggplot(aes (x=Region,y=mean_catch,fill=Sector,col=Sector))+
+  
+  geom_bar(position="fill", stat="identity") +
+  
+  #  coord_polar("y")
+  geom_text(aes(x=Region,y =mean_catch/sum(mean_catch),
+                label=paste (
+                          round (mean_catch,2),
+                          round(prop,2),
+                          sep = " / ")
+                          
+                      ),col="black")
+
+
+ggsave (file =  ("../puttingBRMap/output/contr_fisheries.pdf"))
+
+
+
+# contribution of artisanal and industria 
+
+fisheries_wtrait %>%
+  
+  #filter (Year > 2000) %>%
+  
+  group_by(Sector) %>% 
+  
+  summarize(mean_catch=mean(CatchAmount_t)
+            
+  )
 # ---------------------------
 # plotting
 
