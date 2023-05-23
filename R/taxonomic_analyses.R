@@ -217,7 +217,7 @@ fisheries_wtrait %>%
                       ),col="black")
 
 
-ggsave (file =  ("../puttingBRMap/output/contr_fisheries.pdf"))
+#ggsave (file =  ("../policyBrief/output/contr_fisheries.pdf"))
 
 
 
@@ -454,14 +454,19 @@ pcoa_fish_year$year_plot<-ifelse (pcoa_fish_year$year %in% seq(1950,2020,5),
 # help here : https://ggplot2.tidyverse.org/reference/geom_path.html
 ordination1<-ggplot(data=pcoa_fish_year,
        aes(x=Axis.1,y=Axis.2)) + 
+  
   geom_point(aes(colour=catch,
                  #fill=catch,
                  size = catch),
              
-             shape=19) +
+             shape=19,alpha=1) +
   
-  scale_colour_viridis_c(option = "magma",
-                         direction=-1)+
+  scale_colour_gradient2(low = "#0f546f", 
+                         mid = "#2087af",
+                         high = "#87c450",# "#55a67f",
+                         midpoint=20000)+
+  #scale_colour_viridis_c(option = "magma",
+  #                       direction=-1)+
   
    geom_path(colour = "turquoise4",
              alpha=0.5,
@@ -478,6 +483,7 @@ ordination1<-ggplot(data=pcoa_fish_year,
   theme(legend.position = "right")
 
 ordination1
+
 
 # correlation of genus to the axes
 
@@ -754,7 +760,7 @@ ordination1_reg <- lapply (seq(1,length(dist_composition_pcoa)), function (i) {
 
 
 # arrange plots
-pdf (here ("output", "fisheries_composition.pdf"),height=7,width=7)
+pdf (here ("output", "fisheries_composition_v2.pdf"),height=7,width=7)
 
 compostion1<-grid.arrange(
                  ordination1,

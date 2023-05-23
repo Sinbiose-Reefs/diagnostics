@@ -487,9 +487,9 @@ plots_year <- lapply (seq (min (fisheries_wtrait$Year), max(fisheries_wtrait$Yea
   plotA <-ggplot(data.frame (df_vals)) + 
     geom_tile(aes(x, y, fill = pred)) +
     #scale_fill_viridis_c() +  
-    scale_fill_gradient2(low = "blue", 
+    scale_fill_gradient2(low = "#0f546f", 
                          mid = "white",
-                         high = "red",
+                         high = "#87c450",
                          midpoint=3,
                          na.value = NA)+
     scale_alpha(range = c(0.15, 0.65), guide = "none") +  
@@ -533,9 +533,9 @@ plots_year <- lapply (seq (min (fisheries_wtrait$Year), max(fisheries_wtrait$Yea
                     fill=TL,
                     colour = TL),
                alpha=0.85) +
-    scale_colour_gradient2(low = "blue", 
+    scale_colour_gradient2(low = "#0f546f", 
                            mid = "white",
-                           high = "red",
+                           high = "#87c450",
                            midpoint=3)+
     ggtitle (t)
   
@@ -626,9 +626,9 @@ plots_reg_sel_years <- lapply (unique(fisheries_wtrait$Region), function (reg)
   plotA <-ggplot(data.frame (df_vals)) + 
     geom_tile(aes(x, y, fill = pred)) +
     #scale_fill_viridis_c() +  
-    scale_fill_gradient2(low = "blue", 
+    scale_fill_gradient2(low = "#0f546f", 
                          mid = "white",
-                         high = "red",
+                         high = "#87c450",
                          midpoint=3,
                          na.value = NA)+
     scale_alpha(range = c(0.15, 0.65), guide = "none") +  
@@ -671,9 +671,9 @@ plots_reg_sel_years <- lapply (unique(fisheries_wtrait$Region), function (reg)
                     fill=TL,
                     colour = TL),
                alpha=0.85) +
-    scale_colour_gradient2(low = "blue", 
+    scale_colour_gradient2(low = "#0f546f", 
                            mid = "white",
-                           high = "red",
+                           high = "#87c450",
                            midpoint=3)+
     ggtitle (paste (reg,
                     t,
@@ -762,9 +762,9 @@ plotB <- lapply (catched_fish_region, function (i) {
   plotA <-ggplot(data.frame (df_vals)) + 
     geom_tile(aes(x, y, fill = pred)) +
     #scale_fill_viridis_c() +  
-    scale_fill_gradient2(low = "blue", 
+    scale_fill_gradient2(low = "#0f546f", 
                          mid = "white",
-                         high = "red",
+                         high = "#87c450",
                          midpoint=3,
                          na.value = NA)+
     scale_alpha(range = c(0.15, 0.65), guide = "none") +  
@@ -827,9 +827,9 @@ a_overall <- all_overall [chull(all_overall[,1:2], y = NULL),] # its convex hull
 plotA <-ggplot(data.frame (df_vals)) + 
   geom_tile(aes(x, y, fill = pred)) +
   #scale_fill_viridis_c() +  
-  scale_fill_gradient2(low = "blue", 
+  scale_fill_gradient2(low = "#0f546f", 
                        mid = "white",
-                       high = "red",
+                       high = "#87c450",
                        na.value = NA,
                        midpoint=3)+
   scale_alpha(range = c(0.15, 0.65), guide = "none") +  
@@ -860,9 +860,9 @@ plotA2 <- plotA1+ geom_polygon(data=a_overall, aes (Axis.1,Axis.2),
              aes (x=Axis.1,y=Axis.2,size=sum_catch,
                   colour=TL,
                   alpha=0.3))+
-  scale_colour_gradient2(low = "blue", 
+  scale_colour_gradient2(low = "#0f546f", 
                          mid = "white",
-                         high = "red",
+                         high = "#87c450",
                          midpoint=3)+
   
   theme(legend.position = "none")
@@ -1190,15 +1190,17 @@ p1<-ggplot (TL_fisheries %>%
   xlab ("Year") + 
   ylab ("Sum catch (thousands of tonnes)") + 
   scale_colour_viridis_d(option = "viridis") + 
+  theme_classic()+
   theme (strip.text = element_text(face="bold"),
          strip.text.x = element_text(size = 10, color = "black", 
                                      face = "bold"),
-         strip.background = element_rect(color="gray70", 
-                                         fill="gray70",
+         strip.background = element_rect(color="white", 
+                                         fill="white",
                                          size=1.5, linetype="solid"
          ),
          legend.position = "none",
-         axis.text.x = element_blank()) +
+         axis.text.x = element_blank(),
+         axis.title.x = element_blank()) +
   scale_y_break(c(450, 1000), expand=T,scales=4)
 
 # northeast
@@ -1210,14 +1212,17 @@ p2<-ggplot (TL_fisheries %>%
   xlab ("Year") + 
   ylab ("Sum catch (thousands of tonnes)") + 
   scale_colour_viridis_d(option = "viridis") + 
+  theme_classic()+
   theme (strip.text = element_text(face="bold"),
          strip.text.x = element_text(size = 10, color = "black", 
                                      face = "bold"),
-         strip.background = element_rect(color="gray70", 
-                                         fill="gray70",
+         strip.background = element_rect(color="white", 
+                                         fill="white",
                                          size=1.5, linetype="solid"
          ),
          axis.text.x  = element_blank(),
+         axis.title.y = element_blank(),
+         axis.title.x = element_blank(),
          legend.position = "none") +
   scale_y_break(c(1400, 3000), expand=T,scales=4)
 
@@ -1231,11 +1236,12 @@ p3<-ggplot (TL_fisheries %>%
   xlab ("Year") + 
   ylab ("Sum catch (thousands of tonnes)") + 
   scale_colour_viridis_d(option = "viridis") + 
+  theme_classic()+
   theme (strip.text = element_text(face="bold"),
          strip.text.x = element_text(size = 10, color = "black", 
                                      face = "bold"),
-         strip.background = element_rect(color="gray70", 
-                                         fill="gray70",
+         strip.background = element_rect(color="white", 
+                                         fill="white",
                                          size=1.5, linetype="solid"
          ),
          legend.position = "none") +
@@ -1250,16 +1256,18 @@ p4<-ggplot (TL_fisheries %>%
   geom_line(size=1) + 
   xlab ("Year") + 
   ylab ("Sum catch (thousands of tonnes)") + 
-  scale_colour_viridis_d(option = "viridis") + 
+  scale_colour_viridis_d(option = "viridis") +
+  theme_classic()+
   theme (strip.text = element_text(face="bold"),
          strip.text.x = element_text(size = 10, color = "black", 
                                      face = "bold"),
-         strip.background = element_rect(color="gray70", 
-                                         fill="gray70",
+         strip.background = element_rect(color="white", 
+                                         fill="white",
                                          size=1.5, linetype="solid"
          ),
+         axis.title.y = element_blank(),
          legend.position = "none") +
-  scale_y_break(c(200, 500), expand=T,scales=4)
+  scale_y_break(c(200, 550), expand=T,scales=4)
 
 # get the legend
 legend_to_plot <- get_legend (p2 + theme(legend.position="right",
