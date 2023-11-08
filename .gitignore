@@ -8,3 +8,6 @@ output/output_no_hellinger
 R/function_poncho.R
 R/script_higher_bycatch.R
 R/script_without_hell.R
+docs
+data/Species_Nutrient_Predictions.csv
+data/GASPAR_Data-1.xlsx
