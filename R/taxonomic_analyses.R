@@ -1,8 +1,14 @@
 
 # -------------------------------------------------------------
 
-# Diagnostics of reef fisheries in Brazil
-# Linda Eggertsen et al.
+# R scripts used in the article "Complexities of reef fisheries in Brazil: a retrospective and functional approach"  
+# by Linda Eggertsen et al. 
+# Journal: Reviews in Fish Biology and Fisheries.
+
+
+# -------------------------------------------------------------
+
+# script 1: taxonomic analyses
 
 
 # load functions and packages
@@ -16,15 +22,14 @@ dir.create("output")
 fisheries <- read.xlsx (here ("data", "FINAL_RECONSTRUCTED_Brazil_1950_2015_CommercialEtapaII_04072021_IP_Freire.xlsx"),
                         sheet = 2)
 
-# adjust name
+# adjust name (sector)
 fisheries$Sector [which(fisheries$Sector == "industrial (LS, C)")] <- "Industrial (LS, C)"
 
 
-
-# load data of Pinheiro et al. 2018 (BR reef fish)
+# load data of Pinheiro et al. 2018 (BR reef fish) - used to define reef-associated species/genus
 reef_fish <- read.csv (here ("data","brazilian-reef-fish-table-04-mar-18-website.xlsx - Database.csv"))
-reef_fish<-reef_fish[which(reef_fish$Relation == "RES"),] # REef fish  (RESident fish according to Pinheiro et al. 2018)
-
+# Reef fish  (RESident fish according to Pinheiro et al. 2018)
+reef_fish<-reef_fish[which(reef_fish$Relation == "RES"),] 
 
 
 # mistake on the database
@@ -54,8 +59,6 @@ traits$Depth_mean<- apply (cbind (traits$Depth_max,
                                   traits$Depth_min),1,mean,na.rm=T)  # row-wise average
 
 
-
-
 # aggregate data of QUimbayo et al. at the genus level
 traits <- traits %>% 
   
@@ -78,7 +81,7 @@ traits <- traits %>%
           Depth_mean, Diet,#Diel_activity,
            Size_group, Level_water)
 
-# load shark traits (compiled from fishbase)
+# load shark traits (compiled from Fishbase)
 shark_traits <- read.xlsx(here ("data", "traits_shark.xlsx"))
 shark_traits <- shark_traits %>% 
   
@@ -101,26 +104,22 @@ shark_traits <- shark_traits %>%
           Size_group, Level_water)
 
 
-# bind 
-
+# bind shark and bony fish traits
 traits <- rbind (traits,
                  shark_traits)
 
 
-# fisheries ~year
+# fisheries ~ year
 # genus
 genus <- strsplit(fisheries$TaxonName," ")
 genus <- do.call(rbind, genus)
 fisheries$Genus_match <- genus[,1]
 
 
-
-
 # fisheries data (matching with Pinheiro et al. 2018)
 # reef fish genus
 table(unique(fisheries$Genus_match) %in% reef_fish$Genus )
 fisheries_wtrait<-fisheries[which(fisheries$Genus_match %in% reef_fish$Genus),]
-
 
 
 # match trait & fisheries
@@ -150,12 +149,7 @@ traits [grep("Carcha", traits$Genus),]
 # omnivore spp
 unique(fisheries_wtrait [grep("om", fisheries_wtrait$Diet), "Genus"])
 
-
-
-# equal column names (remove one)
-#table(fisheries_wtrait[,25] == fisheries_wtrait[,117])
-#fisheries_wtrait<- fisheries_wtrait[,-117]
-
+# check names 
 
 unique(fisheries_wtrait [which (fisheries_wtrait$Year %in% seq (1970,1973) & 
                                    fisheries_wtrait$Region == "South"),"TaxonName"])
@@ -167,11 +161,6 @@ unique(fisheries_wtrait$TaxonName)[order(unique(fisheries_wtrait$TaxonName))]
 fisheries_wtrait <- fisheries_wtrait %>% 
   
   filter(TaxonName %in% c("Myrichthys breviceps" , "Pomacanthus paru") == F)
-
-
-
-# barplot for policy brief
-
 
 
 
@@ -189,6 +178,7 @@ sum_catches<- fisheries_wtrait %>%
   summarize(mean_sum_catch= (sum(sum_catch)))
   
   
+# summarize, show and plot
 
 fisheries_wtrait %>%
   
@@ -216,12 +206,11 @@ fisheries_wtrait %>%
                           
                       ),col="black")
 
-
+# save this plot
 #ggsave (file =  ("../policyBrief/output/contr_fisheries.pdf"))
 
 
-
-# contribution of artisanal and industria 
+# contribution of artisanal and industrial fishing
 
 fisheries_wtrait %>%
   
@@ -232,11 +221,12 @@ fisheries_wtrait %>%
   summarize(mean_catch=mean(CatchAmount_t)
             
   )
+
 # ---------------------------
 # plotting
 
 
-# catch year
+# arrange data of catch / year
 catch_year <- fisheries_wtrait %>%
   
   group_by(Year,Sector,Region) %>% 
@@ -316,7 +306,7 @@ dev.off()
 
 
 # ========================
-# species most matched per region
+# most matched genus per region
 
 
 sp_region <- fisheries_wtrait %>%
@@ -330,7 +320,7 @@ sp_region <- fisheries_wtrait %>%
   ) 
 
 
-# 1% of the year catch
+# bycatch: 1% of the year catch
 percentage_for_bycatch <-  0.01
 
 
@@ -370,7 +360,7 @@ sp_region$TaxonName [which (sp_region$Region == "South")]
 
 
 # ========================
-# how fisheries changed over time in terms of spp composition?
+# how fisheries changed over time in terms of spp composition
 # filter reef fish
 
 
@@ -449,14 +439,12 @@ pcoa_fish_year$year_plot<-ifelse (pcoa_fish_year$year %in% seq(1950,2020,5),
                              pcoa_fish_year$year,
                                          "")
 
-
 # ordination (projection of beta diversity )
 # help here : https://ggplot2.tidyverse.org/reference/geom_path.html
 ordination1<-ggplot(data=pcoa_fish_year,
        aes(x=Axis.1,y=Axis.2)) + 
   
   geom_point(aes(colour=catch,
-                 #fill=catch,
                  size = catch),
              
              shape=19,alpha=1) +
@@ -465,8 +453,6 @@ ordination1<-ggplot(data=pcoa_fish_year,
                          mid = "#2087af",
                          high = "#87c450",# "#55a67f",
                          midpoint=20000)+
-  #scale_colour_viridis_c(option = "magma",
-  #                       direction=-1)+
   
    geom_path(colour = "turquoise4",
              alpha=0.5,
@@ -678,7 +664,6 @@ catch_year_region <- tapply (fisheries_wtrait$CatchAmount_t,
 
 # ordination (projection of beta diversity )
 # help here : https://ggplot2.tidyverse.org/reference/geom_path.html
-
 # change the direction of southeast ordination
 dist_composition_pcoa[[3]]  <- dist_composition_pcoa[[3]] %>% 
   mutate_at (vars (Axis.1), funs (.*-1))
@@ -791,9 +776,13 @@ dev.off()
 
 ## save objects to trait-based analyses
 
-save (fisheries_wtrait,year_composition,traits,reef_fish,
-      percentage_for_bycatch,year_region_composition_filtered,
-      pcoa_fish_year,file =  here ("data", "fisheries_wtrait.R"))
+save (fisheries_wtrait,
+      year_composition,
+      traits,reef_fish,
+      percentage_for_bycatch,
+      year_region_composition_filtered,
+      pcoa_fish_year,
+      file =  here ("data", "fisheries_wtrait.R"))
 
 rm(list=ls())
 
